@@ -390,7 +390,7 @@ pub fn init(section: Element, state: State) -> Element {
                         ),
                         Element::Span(Meta::new().with_child(Element::Text(format!(
                             "{} min read &bull; {}",
-                            state.word_count / 250,
+                            state.word_count / 120,
                             state.date.format("%e %B, %Y")
                         )))),
                     ])

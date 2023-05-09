@@ -1,4 +1,4 @@
 /target
-/sample
+
+# prof-build.ps1 is a powershell script for building executables profile guilded optimization
 prof-build.ps1
-/out
