@@ -14,11 +14,12 @@
 
 - Case-insensitive typographic replacements (ex: `(c)` to `©` and `(tm)`  to`™` ) _See `src/replacer.rs` for full list_
 - Extended tasklist items
-  - Supports `x`, `X`, `+` and `-`
+  - Supports `x` (`a green check mark`), `X` (`a red cross mark`), `+` (`a blue plus sign`) and `-` (`a grey minus sign`)
 - Requires toml front-matter delimited with `+++` with `author`, `tags`, `avatar` and `title` fields. (As it is originally intended for blog post generation)
 - Calculates total read time assuming average speed of `120 wpm`.
 - Denotes external links with a icon after the link.
 - Footnote return to reference location.
+- Generates images with captions (`figcaption`) title, if present.
 
 ## Usage
 ``` console
