@@ -1,14 +1,11 @@
 use crate::html::{Element, Meta};
 
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Color, Style, ThemeSet};
+use syntect::highlighting::{Color, Style, Theme};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
-pub fn highlight_code(code: &str, lang: &str) -> Element {
-    let ps = SyntaxSet::load_defaults_newlines();
-    let ts = ThemeSet::load_defaults();
-
+pub fn highlight_code(code: &str, lang: &str, ps: &SyntaxSet, theme: &Theme) -> Element {
     let mut children = Vec::new();
 
     let mut is_plain_text = false;
@@ -18,7 +15,7 @@ pub fn highlight_code(code: &str, lang: &str) -> Element {
         ps.find_syntax_plain_text()
     });
 
-    let mut h = HighlightLines::new(syntax, &ts.themes["base16-eighties.dark"]);
+    let mut h = HighlightLines::new(syntax, theme);
 
     let lines = LinesWithEndings::from(code).collect::<Vec<_>>();
     let n = lines.len();

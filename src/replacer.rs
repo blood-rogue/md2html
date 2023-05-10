@@ -98,3 +98,34 @@ pub static EMOTICONS: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
         (";-)", "wink"),
     ])
 });
+
+pub fn replace_typographer(text: &str) -> String {
+    let mut offset = 0;
+    let mut replaced_text = text.to_string();
+    TYPOGRAPHER_REGEX.find_iter(text).for_each(|m| {
+        if let Ok(m) = m {
+            let typography = TYPOGRAPHER[m.as_str()];
+            replaced_text.replace_range(m.start() - offset..m.end() - offset, typography);
+            offset += (m.end() - m.start()) - typography.len()
+        }
+    });
+
+    replaced_text
+}
+
+pub fn replace_emoticons(text: &str) -> String {
+    let mut offset = 0;
+    let mut replaced_text = text.to_string();
+
+    EMOTICON_REGEX.find_iter(text).for_each(|m| {
+        if let Ok(m) = m {
+            let emoji = emojis::get_by_shortcode(EMOTICONS[m.as_str()])
+                .unwrap()
+                .as_str();
+            replaced_text.replace_range(m.start() + offset..m.end() + offset, emoji);
+            offset += emoji.len() - (m.end() - m.start())
+        }
+    });
+
+    replaced_text
+}

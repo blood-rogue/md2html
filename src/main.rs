@@ -15,6 +15,18 @@ use comrak::{
 };
 
 use html::{Element, Meta};
+use once_cell::sync::Lazy;
+use syntect::{
+    highlighting::{Theme, ThemeSet},
+    parsing::SyntaxSet,
+};
+
+static THEME: Lazy<Theme> = Lazy::new(|| {
+    let ts = ThemeSet::load_defaults();
+    ts.themes["base16-eighties.dark"].clone()
+});
+
+static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| SyntaxSet::load_defaults_newlines());
 
 fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
     match &node.data.borrow().value {
@@ -92,7 +104,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
         ),
 
         NodeValue::CodeBlock(code_block) => {
-            highlighter::highlight_code(&code_block.literal, &code_block.info)
+            highlighter::highlight_code(&code_block.literal, &code_block.info, &SYNTAX_SET, &THEME)
         }
 
         NodeValue::HtmlBlock(html_block) => Element::Raw(html_block.literal.clone()),
@@ -168,17 +180,11 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
 
             alignments.iter().enumerate().for_each(|(i, alignment)| {
                 state.styles.push(format!(
-                    ".table-{} td:nth-child({}) {{ text-align: {} }}",
+                    ".table-{0} td:nth-child({1}), .table-{0} th:nth-child({1}) {{ text-align: {2} }}",
                     state.table_counter,
                     i + 1,
                     alignment_to_str(alignment)
                 ));
-                state.styles.push(format!(
-                    ".table-{} th:nth-child({}) {{ text-align: {} }}",
-                    state.table_counter,
-                    i + 1,
-                    alignment_to_str(alignment)
-                ))
             });
 
             let table_rows = node.children().collect::<Vec<_>>();
@@ -230,34 +236,8 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
         NodeValue::Text(text) => {
             state.word_count += text.split_whitespace().collect::<Vec<_>>().len();
 
-            let mut replaced_text = text.clone();
-
-            let mut offset = 0;
-
-            replacer::TYPOGRAPHER_REGEX.find_iter(text).for_each(|m| {
-                if let Ok(m) = m {
-                    let typography = replacer::TYPOGRAPHER[m.as_str()];
-                    replaced_text.replace_range(m.start() - offset..m.end() - offset, typography);
-                    offset += (m.end() - m.start()) - typography.len()
-                }
-            });
-
-            offset = 0;
-
-            let new_text = replaced_text.clone();
-
-            replacer::EMOTICON_REGEX.find_iter(&new_text).for_each(|m| {
-                if let Ok(m) = m {
-                    let emoji = emojis::get_by_shortcode(replacer::EMOTICONS[m.as_str()])
-                        .unwrap()
-                        .as_str();
-                    replaced_text.replace_range(m.start() + offset..m.end() + offset, emoji);
-                    offset += emoji.len() - (m.end() - m.start())
-                }
-            });
-
             Element::Text(
-                replaced_text
+                replacer::replace_emoticons(&replacer::replace_typographer(&text))
                     .replace("&", "&amp;")
                     .replace("<", "&lt;")
                     .replace(">", "&gt;")
@@ -485,5 +465,5 @@ fn main() {
         std::fs::create_dir_all(&cmd.out_dir).unwrap();
     }
 
-    std::fs::write(out_path.with_extension("html"), html.to_string()).unwrap();
+    std::fs::write(out_path.with_extension("html"), html.to_html()).unwrap();
 }

@@ -46,6 +46,7 @@ section {
 
 section *[id^="heading__"] {
     width: fit-content;
+    color: #c491ff;
 }
 
 section *[id^="heading__"] > a.section-logo {
@@ -103,7 +104,7 @@ blockquote::before {
     content: "“";
     position: relative;
     font-size: 50px;
-    color: #7fffd4;
+    color: #60ffc9cc;
 }
 
 blockquote > p {
@@ -125,13 +126,13 @@ section > blockquote:last-child {
 }
 
 mark {
-    background-color: #7fffd4;
+    background-color: #60ffc9cc;
     padding: 4px;
     border-radius: 2px;
 }
 
 a:link {
-    color: #7fffd4;
+    color: #60ffc9cc;
 }
 
 a:hover {
@@ -148,7 +149,7 @@ sup > a[href^="#footnote-definition-"] {
 }
 
 hr {
-    border: 2px solid #7fffd4;
+    border: 2px solid #60ffc9cc;
 }
 
 .tag {

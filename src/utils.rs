@@ -2,9 +2,13 @@ use std::{collections::HashMap, ops::AddAssign};
 
 use chrono::{DateTime, Utc};
 use fancy_regex::Regex;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 
 use crate::html::{Element, Meta};
+
+static NON_ASCII_CHAR: Lazy<Regex> = Lazy::new(|| Regex::new("[^a-z0-9 -]").unwrap());
+static CONTINUOS_DASH: Lazy<Regex> = Lazy::new(|| Regex::new("-+").unwrap());
 
 #[derive(Deserialize, Default, Clone)]
 pub struct FrontMatter {
@@ -215,13 +219,14 @@ pub fn heading_to_slug(elements: &[Element]) -> (String, String) {
 
     let title = text.clone();
 
-    text = remove_diacritics(&text).to_lowercase();
-
-    let regex = Regex::new("[^a-z0-9 -]").unwrap();
-    text = regex.replace_all(&text, "").to_string();
-
-    let regex = Regex::new("-+").unwrap();
-    text = regex.replace_all(&text, "-").to_string();
+    let text = CONTINUOS_DASH
+        .replace_all(
+            &NON_ASCII_CHAR
+                .replace_all(&remove_diacritics(&text).to_lowercase(), "")
+                .to_string(),
+            "-",
+        )
+        .to_string();
 
     (text, title)
 }

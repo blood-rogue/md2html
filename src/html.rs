@@ -106,8 +106,6 @@ pub enum Element {
 impl Element {
     fn tag_name(&self) -> String {
         let tag = match self {
-            Self::Doctype(_) => "doctype",
-            Self::Html(_, _) => "html",
             Self::Head(_) => "head",
             Self::Title(_) => "title",
             Self::Link(_) => "link",
@@ -152,7 +150,13 @@ impl Element {
             Self::Summary(_) => "summary",
             Self::Thead(_) => "thead",
             Self::Tbody(_) => "tbody",
-            Self::Comment(_) | Self::Text(_) | Self::Raw(_) | Self::Empty => "",
+
+            Self::Doctype(_)
+            | Self::Html(_, _)
+            | Self::Comment(_)
+            | Self::Text(_)
+            | Self::Raw(_)
+            | Self::Empty => "",
         };
 
         tag.to_string()
@@ -210,13 +214,12 @@ impl Element {
     }
 }
 
-impl ToString for Element {
-    fn to_string(&self) -> String {
+impl Element {
+    pub fn to_html(&self) -> Vec<u8> {
         let mut writer = BufWriter::new(Vec::new());
 
         self.write_recursive(&mut writer).unwrap();
 
-        let buf = writer.into_inner().unwrap();
-        String::from_utf8(buf).unwrap()
+        writer.into_inner().unwrap()
     }
 }
