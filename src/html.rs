@@ -215,7 +215,10 @@ impl Element {
 
             Comment(comment) => writeln!(writer, "\n<!-- {comment} -->")?,
 
-            Style(s) | Raw(s) => write!(writer, "<style>{s}</style>")?,
+            Style(s) => write!(writer, "<style>{s}</style>")?,
+
+            Raw(s) => write!(writer, "{s}")?,
+
             Empty => {}
         }
 
