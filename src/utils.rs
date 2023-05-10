@@ -6,11 +6,12 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use colored::Colorize;
 use fancy_regex::Regex;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 
-use crate::html::{Element, Meta};
+use crate::html::{Meta, Tag};
 
 static NON_ASCII_CHAR: Lazy<Regex> = Lazy::new(|| must(Regex::new("[^a-z0-9 _]+")));
 
@@ -28,7 +29,7 @@ pub struct State {
     pub front_matter: Option<FrontMatter>,
     pub footnote_counter: HashMap<String, usize>,
     pub date: DateTime<Utc>,
-    pub definitions: Vec<(String, Vec<Element>)>,
+    pub definitions: Vec<(String, Vec<Tag>)>,
     pub styles: Vec<String>,
     pub word_count: usize,
     pub headings: Vec<(u8, String, String)>,
@@ -195,11 +196,11 @@ fn remove_diacritics(string: &str) -> String {
     })
 }
 
-pub fn heading_to_slug(elements: &[Element]) -> (String, String) {
-    use Element::*;
+pub fn heading_to_slug(elements: &[Tag]) -> (String, String) {
+    use Tag::*;
     let mut text = String::new();
 
-    fn iterate(s: &mut String, child: &Element) {
+    fn iterate(s: &mut String, child: &Tag) {
         match child {
             Text(text) => s.add_assign(&text),
             H1(meta) | H2(meta) | H3(meta) | H4(meta) | H5(meta) | H6(meta) | Blockquote(meta)
@@ -231,7 +232,7 @@ pub fn heading_to_slug(elements: &[Element]) -> (String, String) {
     (text, title)
 }
 
-pub fn init(section: Element, state: State) -> Element {
+pub fn init(section: Tag, state: State) -> Tag {
     let mut footnotes = Vec::with_capacity(state.definitions.len());
 
     let front_matter = must(state.front_matter.ok_or_else(|| "Missing front-matter"));
@@ -239,9 +240,9 @@ pub fn init(section: Element, state: State) -> Element {
     for (definition, meta) in state.definitions {
         let mut references = meta;
         for i in 0..state.footnote_counter[&definition] {
-            references.push(Element::A(
+            references.push(Tag::A(
                 Meta::new()
-                    .with_child(Element::Text("↩".into()))
+                    .with_child(Tag::Text("↩".into()))
                     .with_attr(&format!(
                         "href=\"#footnote-reference-{definition}{}\"",
                         if i > 0 { format!(":{i}") } else { "".into() }
@@ -250,8 +251,8 @@ pub fn init(section: Element, state: State) -> Element {
         }
         footnotes.insert(
             must(definition.parse::<usize>()) - 1,
-            Element::Li(
-                Meta::new().with_child(Element::Div(
+            Tag::Li(
+                Meta::new().with_child(Tag::Div(
                     Meta::new()
                         .with_children(references)
                         .with_attr(&format!("id=\"footnote-definition-{definition}\"")),
@@ -262,9 +263,9 @@ pub fn init(section: Element, state: State) -> Element {
 
     let mut tags = Vec::new();
     for tag in front_matter.tags {
-        tags.push(Element::A(
+        tags.push(Tag::A(
             Meta::new()
-                .with_child(Element::Text(format!("#{tag}")))
+                .with_child(Tag::Text(format!("#{tag}")))
                 .with_attrs(vec![
                     format!("href=\"{}/tags/{tag}\"", state.domain),
                     "class=\"tag\"".to_string(),
@@ -312,17 +313,17 @@ pub fn init(section: Element, state: State) -> Element {
         }
     };
 
-    let toc = Element::Div(
+    let toc = Tag::Div(
         Meta::new().with_children(
             state
                 .headings
                 .iter()
                 .map(|(depth, id, title)| {
-                    Element::P(
+                    Tag::P(
                         Meta::new()
-                            .with_child(Element::A(
+                            .with_child(Tag::A(
                                 Meta::new()
-                                    .with_child(Element::Text(format!(
+                                    .with_child(Tag::Text(format!(
                                         "{}. {title}",
                                         format_heading(*depth)
                                     )))
@@ -347,54 +348,54 @@ pub fn init(section: Element, state: State) -> Element {
     ))
     .replace(":-webkit-scrollbar", "::-webkit-scrollbar"); // This breaks custom scroll bar styling as it replaces `::` with `:` which breaks `-webkit-scrollbar`
 
-    let head = Element::Head(Meta::new().with_children(Vec::from([
-        Element::Meta(Meta::new().with_attr("charset=\"utf-8\"")),
-        Element::Meta(Meta::new().with_attrs(vec![
+    let head = Tag::Head(Meta::new().with_children(Vec::from([
+        Tag::Meta(Meta::new().with_attr("charset=\"utf-8\"")),
+        Tag::Meta(Meta::new().with_attrs(vec![
             "name=\"viewport\"".to_string(),
             "content=\"width=device-width, initial-scale=1\"".to_string(),
         ])),
-        Element::Meta(Meta::new().with_attrs(vec![
+        Tag::Meta(Meta::new().with_attrs(vec![
             "property=\"og:title\"".to_string(),
             format!("content=\"{}\"", front_matter.title),
         ])),
-        Element::Link(Meta::new().with_attrs(vec![
+        Tag::Link(Meta::new().with_attrs(vec![
             "rel=\"stylesheet\"".to_string(),
             format!(
                 "href=\"https://fonts.googleapis.com/css2?family={}\"",
                 families
             ),
         ])),
-        Element::Link(Meta::new().with_attrs(vec![
+        Tag::Link(Meta::new().with_attrs(vec![
             "rel=\"stylesheet\"".to_string(),
             "href=\"https://unpkg.com/@fortawesome/fontawesome-free/css/all.min.css\"".to_string(),
         ])),
-        Element::Title(Meta::new().with_child(Element::Text(front_matter.title.clone()))),
-        Element::Style(minified),
+        Tag::Title(Meta::new().with_child(Tag::Text(front_matter.title.clone()))),
+        Tag::Style(minified),
     ])));
 
-    let body = Element::Body(
+    let body = Tag::Body(
         Meta::new().with_children(Vec::from([
-            Element::Comment("META_CONTAINER_START".to_string()),
-            Element::H1(Meta::new().with_child(Element::Text(front_matter.title.clone()))),
-            Element::Div(Meta::new().with_children(tags)),
-            Element::Div(
+            Tag::Comment("META_CONTAINER_START".to_string()),
+            Tag::H1(Meta::new().with_child(Tag::Text(front_matter.title.clone()))),
+            Tag::Div(Meta::new().with_children(tags)),
+            Tag::Div(
                 Meta::new()
                     .with_children(vec![
-                        Element::Img(Meta::new().with_attrs(vec![
+                        Tag::Img(Meta::new().with_attrs(vec![
                             format!("src=\"{}\"", front_matter.avatar),
                             format!("alt=\"{}\"", front_matter.author),
                         ])),
-                        Element::Span(
-                            Meta::new().with_child(Element::A(
+                        Tag::Span(
+                            Meta::new().with_child(Tag::A(
                                 Meta::new()
-                                    .with_child(Element::Text(front_matter.author.clone()))
+                                    .with_child(Tag::Text(front_matter.author.clone()))
                                     .with_attr(&format!(
                                         "href=\"{}/authors/{}\"",
                                         state.domain, front_matter.author
                                     )),
                             )),
                         ),
-                        Element::Span(Meta::new().with_child(Element::Text(format!(
+                        Tag::Span(Meta::new().with_child(Tag::Text(format!(
                             "{} min read &bull; {}",
                             state.word_count / 120,
                             state.date.format("%e %B, %Y")
@@ -402,37 +403,37 @@ pub fn init(section: Element, state: State) -> Element {
                     ])
                     .with_attr("class=\"meta-container\""),
             ),
-            Element::Comment("META_CONTAINER_END".to_string()),
-            Element::Comment("TOC_START".to_string()),
-            Element::Details(Meta::new().with_children(vec![
-                Element::Summary(Meta::new().with_child(Element::Span(
-                    Meta::new().with_child(Element::Text("Table of Contents".into())),
+            Tag::Comment("META_CONTAINER_END".to_string()),
+            Tag::Comment("TOC_START".to_string()),
+            Tag::Details(Meta::new().with_children(vec![
+                Tag::Summary(Meta::new().with_child(Tag::Span(
+                    Meta::new().with_child(Tag::Text("Table of Contents".into())),
                 ))),
                 toc,
             ])),
-            Element::Comment("TOC_END".to_string()),
-            Element::Comment("BLOG_SECTION_START".to_string()),
+            Tag::Comment("TOC_END".to_string()),
+            Tag::Comment("BLOG_SECTION_START".to_string()),
             section,
-            Element::Comment("BLOG_SECTION_END".to_string()),
-            Element::Comment("FOOTNOTES_START".to_string()),
-            Element::Section(Meta::new().with_children(vec![
-                Element::Hr(Meta::default()),
-                Element::Ol(Meta::new().with_children(footnotes)),
+            Tag::Comment("BLOG_SECTION_END".to_string()),
+            Tag::Comment("FOOTNOTES_START".to_string()),
+            Tag::Section(Meta::new().with_children(vec![
+                Tag::Hr(Meta::default()),
+                Tag::Ol(Meta::new().with_children(footnotes)),
             ])),
-            Element::Comment("FOOTNOTES_END".to_string()),
+            Tag::Comment("FOOTNOTES_END".to_string()),
         ])),
     );
 
-    Element::Doctype(Meta::new().with_children(Vec::from([
-        Element::Comment(format!(
+    Tag::Doctype(Meta::new().with_children(Vec::from([
+        Tag::Comment(format!(
             "Generated using `md2html` by `Blood Rogue (github.com/blood-rogue)` on {}.",
             state.date.format("%d/%m/%Y %H:%M:%S")
         )),
-        Element::Html(Box::new(head), Box::new(body)),
+        Tag::Html(Box::new(head), Box::new(body)),
     ])))
 }
 
-pub fn char_to_taskitem(ch: char) -> Element {
+pub fn char_to_taskitem(ch: char) -> Tag {
     let (icon, color) = match ch {
         'x' => ("square-check", "limegreen"),
         '-' => ("square-minus", "grey"),
@@ -441,7 +442,7 @@ pub fn char_to_taskitem(ch: char) -> Element {
         _ => ("", "white"),
     };
 
-    Element::Span(Meta::new().with_attrs(vec![
+    Tag::Span(Meta::new().with_attrs(vec![
         format!("class=\"fa-solid fa-{icon}\""),
         format!("style=\"color: {color}\""),
     ]))
@@ -451,8 +452,8 @@ pub fn must<T, E: Debug>(res: Result<T, E>) -> T {
     match res {
         Ok(t) => t,
         Err(e) => {
-            format!("[ERROR]: {:#?}", e);
-            exit(1);
+            println!("{}", format!("[ERROR]: {:#?}", e).bright_red());
+            exit(0);
         }
     }
 }

@@ -9,12 +9,13 @@ use std::{fs::File, io::Read, path::PathBuf};
 use chrono::Utc;
 use clap::Parser;
 use cmd::Command;
+use colored::Colorize;
 use comrak::{
     nodes::{AstNode, ListType, NodeValue, TableAlignment},
     Arena, ComrakExtensionOptions, ComrakOptions, ComrakParseOptions, ComrakRenderOptions,
 };
 
-use html::{Element, Meta};
+use html::{Meta, Tag};
 use once_cell::sync::Lazy;
 use syntect::{
     highlighting::{Theme, ThemeSet},
@@ -29,9 +30,9 @@ static THEME: Lazy<Theme> = Lazy::new(|| {
 
 static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| SyntaxSet::load_defaults_newlines());
 
-fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
+fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Tag {
     match &node.data.borrow().value {
-        NodeValue::Document => Element::Section(
+        NodeValue::Document => Tag::Section(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -44,10 +45,10 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             state.front_matter = Some(must(toml::from_str::<utils::FrontMatter>(trimmed)));
             state.date = Utc::now();
 
-            Element::Empty
+            Tag::Empty
         }
 
-        NodeValue::BlockQuote => Element::Blockquote(
+        NodeValue::BlockQuote => Tag::Blockquote(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -62,12 +63,12 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
                 .collect();
 
             match list.list_type {
-                ListType::Bullet => Element::Ul(Meta::new().with_children(children)),
-                ListType::Ordered => Element::Ol(Meta::new().with_children(children)),
+                ListType::Bullet => Tag::Ul(Meta::new().with_children(children)),
+                ListType::Ordered => Tag::Ol(Meta::new().with_children(children)),
             }
         }
 
-        NodeValue::Item(_) => Element::Li(
+        NodeValue::Item(_) => Tag::Li(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -83,12 +84,12 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
                 }
             }
 
-            Element::Dl(Meta::new().with_children(children))
+            Tag::Dl(Meta::new().with_children(children))
         }
 
-        NodeValue::DescriptionItem(_) => Element::Empty,
+        NodeValue::DescriptionItem(_) => Tag::Empty,
 
-        NodeValue::DescriptionTerm => Element::Dt(
+        NodeValue::DescriptionTerm => Tag::Dt(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -96,7 +97,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             ),
         ),
 
-        NodeValue::DescriptionDetails => Element::Dd(
+        NodeValue::DescriptionDetails => Tag::Dd(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -108,9 +109,9 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             highlighter::highlight_code(&code_block.literal, &code_block.info, &SYNTAX_SET, &THEME)
         }
 
-        NodeValue::HtmlBlock(html_block) => Element::Raw(html_block.literal.clone()),
+        NodeValue::HtmlBlock(html_block) => Tag::Raw(html_block.literal.clone()),
 
-        NodeValue::Paragraph => Element::P(
+        NodeValue::Paragraph => Tag::P(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -128,9 +129,9 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
 
             state.headings.push((heading.level, id.clone(), title));
 
-            children.push(Element::A(
+            children.push(Tag::A(
                 Meta::new()
-                    .with_child(Element::Text("&nbsp;&sect;".into()))
+                    .with_child(Tag::Text("&nbsp;&sect;".into()))
                     .with_attrs(vec![
                         format!("href=\"#heading__{id}\""),
                         "class=\"section-logo\"".into(),
@@ -142,17 +143,17 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
                 .with_children(children);
 
             match heading.level {
-                1 => Element::H1(meta),
-                2 => Element::H2(meta),
-                3 => Element::H3(meta),
-                4 => Element::H4(meta),
-                5 => Element::H5(meta),
-                6 => Element::H6(meta),
+                1 => Tag::H1(meta),
+                2 => Tag::H2(meta),
+                3 => Tag::H3(meta),
+                4 => Tag::H4(meta),
+                5 => Tag::H5(meta),
+                6 => Tag::H6(meta),
                 _ => unreachable!(),
             }
         }
 
-        NodeValue::ThematicBreak => Element::Hr(Meta::default()),
+        NodeValue::ThematicBreak => Tag::Hr(Meta::default()),
 
         NodeValue::FootnoteDefinition(definition) => {
             let mut children = Vec::new();
@@ -161,7 +162,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             }
 
             state.definitions.push((definition.clone(), children));
-            Element::Empty
+            Tag::Empty
         }
 
         NodeValue::Table(alignments) => {
@@ -199,12 +200,12 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
 
             let meta = Meta::new()
                 .with_children(vec![
-                    Element::Thead(Meta::new().with_child(header_row)),
-                    Element::Tbody(Meta::new().with_children(children)),
+                    Tag::Thead(Meta::new().with_child(header_row)),
+                    Tag::Tbody(Meta::new().with_children(children)),
                 ])
                 .with_attr(&format!("class=\"table-{}\"", state.table_counter));
 
-            Element::Table(meta)
+            Tag::Table(meta)
         }
 
         NodeValue::TableRow(header) => {
@@ -215,7 +216,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
                     for child in table_head.children() {
                         table_children.push(iter_nodes(child, state));
                     }
-                    children.push(Element::Th(Meta::new().with_children(table_children)))
+                    children.push(Tag::Th(Meta::new().with_children(table_children)))
                 }
             } else {
                 for child in node.children() {
@@ -223,10 +224,10 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
                 }
             }
 
-            Element::Tr(Meta::new().with_children(children))
+            Tag::Tr(Meta::new().with_children(children))
         }
 
-        NodeValue::TableCell => Element::Td(
+        NodeValue::TableCell => Tag::Td(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -237,7 +238,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
         NodeValue::Text(text) => {
             state.word_count += text.split_whitespace().collect::<Vec<_>>().len();
 
-            Element::Text(replacer::replace_emoticons(&replacer::replace_typographer(
+            Tag::Text(replacer::replace_emoticons(&replacer::replace_typographer(
                 &text,
             )))
         }
@@ -248,7 +249,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             if let Some(ch) = ch {
                 children.push(utils::char_to_taskitem(*ch))
             } else {
-                children.push(Element::Span(
+                children.push(Tag::Span(
                     Meta::new().with_attr(r#"class="fa-regular fa-square""#),
                 ))
             }
@@ -259,26 +260,26 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
                 }
             }
 
-            Element::Li(
+            Tag::Li(
                 Meta::new()
                     .with_children(children)
                     .with_attr("class=\"task-item\"".into()),
             )
         }
 
-        NodeValue::SoftBreak => Element::Br(Meta::default()),
+        NodeValue::SoftBreak => Tag::Br(Meta::default()),
 
-        NodeValue::LineBreak => Element::Br(Meta::default()),
+        NodeValue::LineBreak => Tag::Br(Meta::default()),
 
-        NodeValue::Code(code) => Element::Span(
+        NodeValue::Code(code) => Tag::Span(
             Meta::new()
-                .with_child(Element::Text(code.literal.clone()))
+                .with_child(Tag::Text(code.literal.clone()))
                 .with_attr("class=\"inline-code\"".into()),
         ),
 
-        NodeValue::HtmlInline(html_code) => Element::Raw(html_code.clone()),
+        NodeValue::HtmlInline(html_code) => Tag::Raw(html_code.clone()),
 
-        NodeValue::Emph => Element::I(
+        NodeValue::Emph => Tag::I(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -286,7 +287,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             ),
         ),
 
-        NodeValue::Strong => Element::B(
+        NodeValue::Strong => Tag::B(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -294,7 +295,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             ),
         ),
 
-        NodeValue::Strikethrough => Element::S(
+        NodeValue::Strikethrough => Tag::S(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -302,7 +303,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             ),
         ),
 
-        NodeValue::Insert => Element::U(
+        NodeValue::Insert => Tag::U(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -310,7 +311,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             ),
         ),
 
-        NodeValue::Superscript => Element::Sup(
+        NodeValue::Superscript => Tag::Sup(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -327,14 +328,14 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             if let Ok(href) = url::Url::parse(&link.url) {
                 if let Some(domain) = href.domain() {
                     if domain != state.domain.as_str() {
-                        children.push(Element::Span(Meta::new().with_attr(
+                        children.push(Tag::Span(Meta::new().with_attr(
                             "class=\"fa-solid fa-up-right-from-square href-external\"".into(),
                         )))
                     }
                 };
             }
 
-            Element::A(Meta::new().with_children(children).with_attrs(vec![
+            Tag::A(Meta::new().with_children(children).with_attrs(vec![
                 format!("href=\"{}\"", link.url),
                 format!("title=\"{}\"", link.title),
                 "target=\"_blank\"".into(),
@@ -352,12 +353,12 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
 
             if !img.title.is_empty() {
                 attrs.push(format!("title=\"{}\"", img.title));
-                Element::Figure(Meta::new().with_children(vec![
-                    Element::Img(Meta::new().with_attrs(attrs)),
-                    Element::Figcaption(Meta::new().with_child(Element::Text(img.title.clone()))),
+                Tag::Figure(Meta::new().with_children(vec![
+                    Tag::Img(Meta::new().with_attrs(attrs)),
+                    Tag::Figcaption(Meta::new().with_child(Tag::Text(img.title.clone()))),
                 ]))
             } else {
-                Element::Img(Meta::new().with_attrs(attrs))
+                Tag::Img(Meta::new().with_attrs(attrs))
             }
         }
 
@@ -372,10 +373,10 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
                 })
                 .or_insert(1);
 
-            Element::Sup(
-                Meta::new().with_child(Element::A(
+            Tag::Sup(
+                Meta::new().with_child(Tag::A(
                     Meta::new()
-                        .with_child(Element::Text(format!("[{reference}{tag}]")))
+                        .with_child(Tag::Text(format!("[{reference}{tag}]")))
                         .with_attrs(vec![
                             format!("href=\"#footnote-definition-{reference}\""),
                             format!("id=\"footnote-reference-{reference}{tag}\""),
@@ -385,10 +386,10 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
         }
 
         NodeValue::ShortCode(short_code) => {
-            Element::Span(Meta::new().with_child(Element::Text(short_code.emoji().into())))
+            Tag::Span(Meta::new().with_child(Tag::Text(short_code.emoji().into())))
         }
 
-        NodeValue::Subscript => Element::Sub(
+        NodeValue::Subscript => Tag::Sub(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -396,7 +397,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             ),
         ),
 
-        NodeValue::Highlight => Element::Mark(
+        NodeValue::Highlight => Tag::Mark(
             Meta::new().with_children(
                 node.children()
                     .map(|child| iter_nodes(child, state))
@@ -404,6 +405,16 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
             ),
         ),
     }
+}
+
+fn get_logger(verbose: bool) -> impl Fn(&str) {
+    let f = if verbose {
+        |info: &str| println!("{}", format!("[INFO]: {}", info).bright_blue())
+    } else {
+        |_: &str| {}
+    };
+
+    f
 }
 
 fn main() {
@@ -441,12 +452,16 @@ fn main() {
         },
     };
 
+    let logger = get_logger(cmd.verbose);
+
     let mut file = must(File::open(&cmd.file_path));
 
     let mut buf = String::new();
     must(file.read_to_string(&mut buf));
+    logger("Read markdown file");
 
     let root = comrak::parse_document(&arena, &buf, &options);
+    logger("Parsed markdown file");
 
     let mut state = utils::State::default();
     state.domain.clone_from(&cmd.domain_name);
@@ -454,6 +469,7 @@ fn main() {
     state.styles.push(include_str!("styles.css").to_string());
 
     let html = utils::init(iter_nodes(root, &mut state), state);
+    logger("Generated HTML AST");
 
     let out_dir = PathBuf::from(&cmd.out_dir);
     let out_path = out_dir
@@ -464,23 +480,38 @@ fn main() {
 
     if !out_path.exists() {
         must(std::fs::create_dir_all(&cmd.out_dir));
+        logger("Created output directory");
     }
 
     must(std::fs::write(&out_path, html.to_html()));
-
-    println!(
-        "Written output to \"{}\"",
+    logger(&format!(
+        "Written HTML to \"{}\"",
         must(std::env::current_dir()).join(&out_path).display()
-    );
+    ));
 
     if cmd.output_ast {
         must(std::fs::write(
             &out_path.with_extension("md.ast"),
             format!("{:#?}", root),
         ));
+        logger(&format!(
+            "Written Markdown AST to \"{}\"",
+            must(std::env::current_dir())
+                .join(&out_path)
+                .with_extension("md.ast")
+                .display()
+        ));
+
         must(std::fs::write(
             &out_path.with_extension("html.ast"),
             format!("{:#?}", html),
+        ));
+        logger(&format!(
+            "Written HTML AST to \"{}\"",
+            must(std::env::current_dir())
+                .join(&out_path)
+                .with_extension("html.ast")
+                .display()
         ));
     }
 }

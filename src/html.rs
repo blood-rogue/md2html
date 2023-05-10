@@ -8,7 +8,7 @@ use crate::utils::must;
 #[derive(Debug, Default, Clone)]
 pub struct Meta {
     attrs: Vec<String>,
-    children: Vec<Element>,
+    children: Vec<Tag>,
 }
 
 impl Meta {
@@ -16,14 +16,14 @@ impl Meta {
         Self::default()
     }
 
-    pub fn with_children(&self, children: Vec<Element>) -> Self {
+    pub fn with_children(&self, children: Vec<Tag>) -> Self {
         Self {
             attrs: self.attrs.clone(),
             children,
         }
     }
 
-    pub fn with_child(&self, child: Element) -> Self {
+    pub fn with_child(&self, child: Tag) -> Self {
         Self {
             attrs: self.attrs.clone(),
             children: vec![child],
@@ -44,15 +44,15 @@ impl Meta {
         }
     }
 
-    pub fn get_children(&self) -> Vec<Element> {
+    pub fn get_children(&self) -> Vec<Tag> {
         self.children.clone()
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Element {
+pub enum Tag {
     Doctype(Meta),
-    Html(Box<Element>, Box<Element>),
+    Html(Box<Tag>, Box<Tag>),
     Head(Meta),
     Title(Meta),
     Link(Meta),
@@ -107,7 +107,7 @@ pub enum Element {
     Empty,
 }
 
-impl Element {
+impl Tag {
     fn tag_name(&self) -> String {
         let tag = match self {
             Self::Head(_) => "head",
@@ -169,7 +169,7 @@ impl Element {
     }
 
     pub fn write_recursive(&self, writer: &mut impl Write) -> Result<(), Box<dyn Error>> {
-        use self::Element::*;
+        use self::Tag::*;
         match self {
             Doctype(meta) => {
                 writeln!(writer, "<!DOCTYPE html>")?;
@@ -226,7 +226,7 @@ impl Element {
     }
 }
 
-impl Element {
+impl Tag {
     pub fn to_html(&self) -> Vec<u8> {
         let mut writer = BufWriter::new(Vec::new());
 

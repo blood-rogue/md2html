@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 #[derive(Parser)]
+#[command(author, version, about, long_about = None)]
 pub struct Command {
     #[arg(long, short)]
     pub file_path: PathBuf,
@@ -15,4 +16,7 @@ pub struct Command {
 
     #[arg(long, short = 'O')]
     pub output_ast: bool,
+
+    #[arg(long, short = 'v')]
+    pub verbose: bool,
 }
