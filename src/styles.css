@@ -250,3 +250,9 @@ table tr:nth-child(2n) {
 ::-webkit-scrollbar-thumb:hover {
     background: #454545;
 }
+
+figure > figcaption {
+    color: #898989;
+    font-style: italic;
+    padding-left: 25px;
+}

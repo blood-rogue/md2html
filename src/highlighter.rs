@@ -1,4 +1,5 @@
 use crate::html::{Element, Meta};
+use crate::utils::must;
 
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Color, Style, Theme};
@@ -30,13 +31,11 @@ pub fn highlight_code(code: &str, lang: &str, ps: &SyntaxSet, theme: &Theme) -> 
                 ..
             },
             text,
-        ) in h.highlight_line(line, &ps).unwrap()
+        ) in must(h.highlight_line(line, &ps))
         {
             cur_line_children.push(Element::Span(
                 Meta::new()
-                    .with_child(Element::Text(
-                        text.replace(">", "&gt;").replace("<", "&lt;"),
-                    ))
+                    .with_child(Element::Text(text.to_string()))
                     .with_attr(&format!("style=\"color: #{r:02x}{g:02x}{b:02x}{a:02x};\"")),
             ))
         }

@@ -10,6 +10,9 @@ pub struct Command {
     #[arg(long, short, default_value_t = String::from("out"))]
     pub out_dir: String,
 
-    #[arg(long, short)]
+    #[arg(long, short, default_value_t = String::from("localhost"))]
     pub domain_name: String,
+
+    #[arg(long, short = 'O')]
+    pub output_ast: bool,
 }

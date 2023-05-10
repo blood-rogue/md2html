@@ -20,6 +20,7 @@ use syntect::{
     highlighting::{Theme, ThemeSet},
     parsing::SyntaxSet,
 };
+use utils::must;
 
 static THEME: Lazy<Theme> = Lazy::new(|| {
     let ts = ThemeSet::load_defaults();
@@ -40,7 +41,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
 
         NodeValue::FrontMatter(front_matter) => {
             let trimmed = front_matter.trim_matches(|c: char| c == '+' || c.is_whitespace());
-            state.front_matter = toml::from_str::<utils::FrontMatter>(trimmed).unwrap();
+            state.front_matter = Some(must(toml::from_str::<utils::FrontMatter>(trimmed)));
             state.date = Utc::now();
 
             Element::Empty
@@ -236,13 +237,9 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
         NodeValue::Text(text) => {
             state.word_count += text.split_whitespace().collect::<Vec<_>>().len();
 
-            Element::Text(
-                replacer::replace_emoticons(&replacer::replace_typographer(&text))
-                    .replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                    .clone(),
-            )
+            Element::Text(replacer::replace_emoticons(&replacer::replace_typographer(
+                &text,
+            )))
         }
 
         NodeValue::TaskItem(ch) => {
@@ -346,19 +343,21 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Element {
         }
 
         NodeValue::Image(img) => {
+            let mut attrs = vec![format!("src=\"{}\"", img.url)];
             if let NodeValue::Text(text) =
                 &node.children().collect::<Vec<_>>()[0].data.borrow().value
             {
-                Element::Img(Meta::new().with_attrs(vec![
-                    format!("src=\"{}\"", img.url),
-                    format!("title=\"{}\"", img.title),
-                    format!("alt=\"{}\"", text),
+                attrs.push(format!("alt=\"{}\"", text))
+            }
+
+            if !img.title.is_empty() {
+                attrs.push(format!("title=\"{}\"", img.title));
+                Element::Figure(Meta::new().with_children(vec![
+                    Element::Img(Meta::new().with_attrs(attrs)),
+                    Element::Figcaption(Meta::new().with_child(Element::Text(img.title.clone()))),
                 ]))
             } else {
-                Element::Img(Meta::new().with_attrs(vec![
-                    format!("src=\"{}\"", img.url),
-                    format!("title=\"{}\"", img.title),
-                ]))
+                Element::Img(Meta::new().with_attrs(attrs))
             }
         }
 
@@ -442,35 +441,46 @@ fn main() {
         },
     };
 
-    let mut file = File::open(cmd.file_path.clone()).unwrap();
+    let mut file = must(File::open(&cmd.file_path));
 
     let mut buf = String::new();
-    file.read_to_string(&mut buf).unwrap();
+    must(file.read_to_string(&mut buf));
 
     let root = comrak::parse_document(&arena, &buf, &options);
 
     let mut state = utils::State::default();
     state.domain.clone_from(&cmd.domain_name);
 
-    state
-        .styles
-        .push(String::from_utf8_lossy(include_bytes!("styles.css")).to_string());
+    state.styles.push(include_str!("styles.css").to_string());
 
     let html = utils::init(iter_nodes(root, &mut state), state);
 
     let out_dir = PathBuf::from(&cmd.out_dir);
     let out_path = out_dir
-        .join(cmd.file_path.file_stem().unwrap())
+        .join(must(
+            cmd.file_path.file_stem().ok_or_else(|| "No filename found"),
+        ))
         .with_extension("html");
 
     if !out_path.exists() {
-        std::fs::create_dir_all(&cmd.out_dir).unwrap();
+        must(std::fs::create_dir_all(&cmd.out_dir));
     }
 
-    std::fs::write(&out_path, html.to_html()).unwrap();
+    must(std::fs::write(&out_path, html.to_html()));
 
     println!(
         "Written output to \"{}\"",
-        std::env::current_dir().unwrap().join(&out_path).display()
+        must(std::env::current_dir()).join(&out_path).display()
     );
+
+    if cmd.output_ast {
+        must(std::fs::write(
+            &out_path.with_extension("md.ast"),
+            format!("{:#?}", root),
+        ));
+        must(std::fs::write(
+            &out_path.with_extension("html.ast"),
+            format!("{:#?}", html),
+        ));
+    }
 }

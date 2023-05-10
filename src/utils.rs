@@ -1,6 +1,8 @@
 use std::{
     collections::HashMap,
+    fmt::Debug,
     ops::{AddAssign, Mul},
+    process::exit,
 };
 
 use chrono::{DateTime, Utc};
@@ -10,8 +12,7 @@ use serde::Deserialize;
 
 use crate::html::{Element, Meta};
 
-static NON_ASCII_CHAR: Lazy<Regex> = Lazy::new(|| Regex::new("[^a-z0-9 -]").unwrap());
-static CONTINUOS_DASH: Lazy<Regex> = Lazy::new(|| Regex::new("-+").unwrap());
+static NON_ASCII_CHAR: Lazy<Regex> = Lazy::new(|| must(Regex::new("[^a-z0-9 _]+")));
 
 #[derive(Deserialize, Default, Clone)]
 pub struct FrontMatter {
@@ -24,7 +25,7 @@ pub struct FrontMatter {
 #[derive(Default)]
 pub struct State {
     pub table_counter: usize,
-    pub front_matter: FrontMatter,
+    pub front_matter: Option<FrontMatter>,
     pub footnote_counter: HashMap<String, usize>,
     pub date: DateTime<Utc>,
     pub definitions: Vec<(String, Vec<Element>)>,
@@ -204,9 +205,9 @@ pub fn heading_to_slug(elements: &[Element]) -> (String, String) {
             H1(meta) | H2(meta) | H3(meta) | H4(meta) | H5(meta) | H6(meta) | Blockquote(meta)
             | Body(meta) | Ol(meta) | Ul(meta) | Li(meta) | Dl(meta) | Dt(meta) | Dd(meta)
             | Div(meta) | Table(meta) | Tr(meta) | Th(meta) | Td(meta) | Span(meta)
-            | Style(meta) | Section(meta) | I(meta) | P(meta) | Code(meta) | Pre(meta)
-            | B(meta) | S(meta) | Sub(meta) | Sup(meta) | Mark(meta) | A(meta) | U(meta)
-            | Link(meta) | Meta(meta) | Hr(meta) | Br(meta) | Img(meta) => {
+            | Section(meta) | I(meta) | P(meta) | Code(meta) | Pre(meta) | B(meta) | S(meta)
+            | Sub(meta) | Sup(meta) | Mark(meta) | A(meta) | U(meta) | Link(meta) | Meta(meta)
+            | Hr(meta) | Br(meta) | Img(meta) => {
                 for child in meta.get_children() {
                     iterate(s, &child)
                 }
@@ -222,13 +223,9 @@ pub fn heading_to_slug(elements: &[Element]) -> (String, String) {
 
     let title = text.clone();
 
-    let text = CONTINUOS_DASH
-        .replace_all(
-            &NON_ASCII_CHAR
-                .replace_all(&remove_diacritics(&text).to_lowercase(), "")
-                .to_string(),
-            "-",
-        )
+    let text = NON_ASCII_CHAR
+        .replace_all(&remove_diacritics(&text).to_lowercase(), "-")
+        .trim_matches('-')
         .to_string();
 
     (text, title)
@@ -236,6 +233,8 @@ pub fn heading_to_slug(elements: &[Element]) -> (String, String) {
 
 pub fn init(section: Element, state: State) -> Element {
     let mut footnotes = Vec::with_capacity(state.definitions.len());
+
+    let front_matter = must(state.front_matter.ok_or_else(|| "Missing front-matter"));
 
     for (definition, meta) in state.definitions {
         let mut references = meta;
@@ -250,7 +249,7 @@ pub fn init(section: Element, state: State) -> Element {
             ))
         }
         footnotes.insert(
-            definition.parse::<usize>().unwrap() - 1,
+            must(definition.parse::<usize>()) - 1,
             Element::Li(
                 Meta::new().with_child(Element::Div(
                     Meta::new()
@@ -262,7 +261,7 @@ pub fn init(section: Element, state: State) -> Element {
     }
 
     let mut tags = Vec::new();
-    for tag in state.front_matter.tags {
+    for tag in front_matter.tags {
         tags.push(Element::A(
             Meta::new()
                 .with_child(Element::Text(format!("#{tag}")))
@@ -342,13 +341,11 @@ pub fn init(section: Element, state: State) -> Element {
         .collect::<Vec<_>>()
         .join("&family=");
 
-    let minified = css_minify::optimizations::Minifier::default()
-        .minify(
-            &state.styles.join(""),
-            css_minify::optimizations::Level::Three,
-        )
-        .unwrap()
-        .replace(":-webkit-scrollbar", "::-webkit-scrollbar"); // This breaks custom scroll bar styling as it replaces `::` with `:` which breaks `-webkit-scrollbar`
+    let minified = must(css_minify::optimizations::Minifier::default().minify(
+        &state.styles.join(""),
+        css_minify::optimizations::Level::Three,
+    ))
+    .replace(":-webkit-scrollbar", "::-webkit-scrollbar"); // This breaks custom scroll bar styling as it replaces `::` with `:` which breaks `-webkit-scrollbar`
 
     let head = Element::Head(Meta::new().with_children(Vec::from([
         Element::Meta(Meta::new().with_attr("charset=\"utf-8\"")),
@@ -358,7 +355,7 @@ pub fn init(section: Element, state: State) -> Element {
         ])),
         Element::Meta(Meta::new().with_attrs(vec![
             "property=\"og:title\"".to_string(),
-            format!("content=\"{}\"", state.front_matter.title),
+            format!("content=\"{}\"", front_matter.title),
         ])),
         Element::Link(Meta::new().with_attrs(vec![
             "rel=\"stylesheet\"".to_string(),
@@ -371,29 +368,29 @@ pub fn init(section: Element, state: State) -> Element {
             "rel=\"stylesheet\"".to_string(),
             "href=\"https://unpkg.com/@fortawesome/fontawesome-free/css/all.min.css\"".to_string(),
         ])),
-        Element::Title(Meta::new().with_child(Element::Text(state.front_matter.title.clone()))),
-        Element::Style(Meta::new().with_child(Element::Text(minified))),
+        Element::Title(Meta::new().with_child(Element::Text(front_matter.title.clone()))),
+        Element::Style(minified),
     ])));
 
     let body = Element::Body(
         Meta::new().with_children(Vec::from([
             Element::Comment("META_CONTAINER_START".to_string()),
-            Element::H1(Meta::new().with_child(Element::Text(state.front_matter.title.clone()))),
+            Element::H1(Meta::new().with_child(Element::Text(front_matter.title.clone()))),
             Element::Div(Meta::new().with_children(tags)),
             Element::Div(
                 Meta::new()
                     .with_children(vec![
                         Element::Img(Meta::new().with_attrs(vec![
-                            format!("src=\"{}\"", state.front_matter.avatar),
-                            format!("alt=\"{}\"", state.front_matter.author),
+                            format!("src=\"{}\"", front_matter.avatar),
+                            format!("alt=\"{}\"", front_matter.author),
                         ])),
                         Element::Span(
                             Meta::new().with_child(Element::A(
                                 Meta::new()
-                                    .with_child(Element::Text(state.front_matter.author.clone()))
+                                    .with_child(Element::Text(front_matter.author.clone()))
                                     .with_attr(&format!(
                                         "href=\"{}/authors/{}\"",
-                                        state.domain, state.front_matter.author
+                                        state.domain, front_matter.author
                                     )),
                             )),
                         ),
@@ -448,4 +445,14 @@ pub fn char_to_taskitem(ch: char) -> Element {
         format!("class=\"fa-solid fa-{icon}\""),
         format!("style=\"color: {color}\""),
     ]))
+}
+
+pub fn must<T, E: Debug>(res: Result<T, E>) -> T {
+    match res {
+        Ok(t) => t,
+        Err(e) => {
+            format!("[ERROR]: {:#?}", e);
+            exit(1);
+        }
+    }
 }

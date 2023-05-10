@@ -3,6 +3,8 @@ use std::{
     io::{BufWriter, Write},
 };
 
+use crate::utils::must;
+
 #[derive(Debug, Default, Clone)]
 pub struct Meta {
     attrs: Vec<String>,
@@ -88,18 +90,20 @@ pub enum Element {
     Mark(Meta),
     Span(Meta),
     Br(Meta),
-    Style(Meta),
     Section(Meta),
     U(Meta),
     Details(Meta),
     Summary(Meta),
     Thead(Meta),
     Tbody(Meta),
+    Figure(Meta),
+    Figcaption(Meta),
 
     Comment(String),
 
     Text(String),
     Raw(String),
+    Style(String),
     Empty,
 }
 
@@ -150,6 +154,8 @@ impl Element {
             Self::Summary(_) => "summary",
             Self::Thead(_) => "thead",
             Self::Tbody(_) => "tbody",
+            Self::Figure(_) => "figure",
+            Self::Figcaption(_) => "figcaption",
 
             Self::Doctype(_)
             | Self::Html(_, _)
@@ -182,9 +188,10 @@ impl Element {
             Head(meta) | Title(meta) | H1(meta) | H2(meta) | H3(meta) | H4(meta) | H5(meta)
             | H6(meta) | Blockquote(meta) | Body(meta) | Thead(meta) | Ol(meta) | Ul(meta)
             | Li(meta) | Dl(meta) | Dt(meta) | Dd(meta) | Div(meta) | Table(meta) | Tr(meta)
-            | Th(meta) | Td(meta) | Span(meta) | Style(meta) | Section(meta) | I(meta)
-            | P(meta) | Code(meta) | Pre(meta) | B(meta) | S(meta) | Sub(meta) | Sup(meta)
-            | Mark(meta) | A(meta) | U(meta) | Details(meta) | Summary(meta) | Tbody(meta) => {
+            | Th(meta) | Td(meta) | Span(meta) | Section(meta) | I(meta) | P(meta) | Code(meta)
+            | Pre(meta) | B(meta) | S(meta) | Sub(meta) | Sup(meta) | Mark(meta) | A(meta)
+            | U(meta) | Details(meta) | Summary(meta) | Tbody(meta) | Figcaption(meta)
+            | Figure(meta) => {
                 write!(writer, "<{}", self.tag_name())?;
                 for attr in &meta.attrs {
                     write!(writer, " {attr}")?;
@@ -204,9 +211,11 @@ impl Element {
                 write!(writer, ">")?;
             }
 
+            Text(s) => write!(writer, "{}", s.replace("<", "&lt;").replace("<", "&gt;"))?,
+
             Comment(comment) => writeln!(writer, "\n<!-- {comment} -->")?,
 
-            Text(s) | Raw(s) => write!(writer, "{s}")?,
+            Style(s) | Raw(s) => write!(writer, "<style>{s}</style>")?,
             Empty => {}
         }
 
@@ -218,8 +227,8 @@ impl Element {
     pub fn to_html(&self) -> Vec<u8> {
         let mut writer = BufWriter::new(Vec::new());
 
-        self.write_recursive(&mut writer).unwrap();
+        must(self.write_recursive(&mut writer));
 
-        writer.into_inner().unwrap()
+        must(writer.into_inner())
     }
 }
