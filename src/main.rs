@@ -459,11 +459,18 @@ fn main() {
     let html = utils::init(iter_nodes(root, &mut state), state);
 
     let out_dir = PathBuf::from(&cmd.out_dir);
-    let out_path = out_dir.join(cmd.file_path.file_stem().unwrap());
+    let out_path = out_dir
+        .join(cmd.file_path.file_stem().unwrap())
+        .with_extension("html");
 
     if !out_path.exists() {
         std::fs::create_dir_all(&cmd.out_dir).unwrap();
     }
 
-    std::fs::write(out_path.with_extension("html"), html.to_html()).unwrap();
+    std::fs::write(&out_path, html.to_html()).unwrap();
+
+    println!(
+        "Written output to \"{}\"",
+        std::env::current_dir().unwrap().join(&out_path).display()
+    );
 }

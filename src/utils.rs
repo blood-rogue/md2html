@@ -1,4 +1,7 @@
-use std::{collections::HashMap, ops::AddAssign};
+use std::{
+    collections::HashMap,
+    ops::{AddAssign, Mul},
+};
 
 use chrono::{DateTime, Utc};
 use fancy_regex::Regex;
@@ -326,7 +329,7 @@ pub fn init(section: Element, state: State) -> Element {
                                     )))
                                     .with_attr(&format!("href=\"#heading__{id}\"")),
                             ))
-                            .with_attr(&format!("style=\"padding-left: {}px\"", *depth * 15)),
+                            .with_attr(&format!("style=\"padding-left: {}px\"", depth.mul(20))),
                     )
                 })
                 .collect(),
@@ -344,7 +347,8 @@ pub fn init(section: Element, state: State) -> Element {
             &state.styles.join(""),
             css_minify::optimizations::Level::Three,
         )
-        .unwrap();
+        .unwrap()
+        .replace(":-webkit-scrollbar", "::-webkit-scrollbar"); // This breaks custom scroll bar styling as it replaces `::` with `:` which breaks `-webkit-scrollbar`
 
     let head = Element::Head(Meta::new().with_children(Vec::from([
         Element::Meta(Meta::new().with_attr("charset=\"utf-8\"")),
