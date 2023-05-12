@@ -242,7 +242,7 @@ pub fn init(section: Tag, state: State) -> Tag {
         for i in 0..state.footnote_counter[&definition] {
             references.push(Tag::A(
                 Meta::new()
-                    .with_child(Tag::Text("↩".into()))
+                    .with_child(Tag::Text("↩&nbsp;".into()))
                     .with_attr(&format!(
                         "href=\"#footnote-reference-{definition}{}\"",
                         if i > 0 { format!(":{i}") } else { "".into() }
@@ -336,7 +336,7 @@ pub fn init(section: Tag, state: State) -> Tag {
         ),
     );
 
-    let families = ["Roboto", "Jetbrains Mono", "Open Sans"]
+    let families = ["Jetbrains Mono", "Open Sans"]
         .iter()
         .map(|font| font.replace(" ", "+"))
         .collect::<Vec<_>>()

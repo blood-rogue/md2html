@@ -407,11 +407,11 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Tag {
     }
 }
 
-fn get_logger(verbose: bool) -> impl Fn(&str) {
+fn get_logger(verbose: bool) -> impl Fn(String) {
     let f = if verbose {
-        |info: &str| println!("{}", format!("[INFO]: {}", info).bright_blue())
+        |info: String| println!("{}", format!("[INFO]: {}", info).bright_blue())
     } else {
-        |_: &str| {}
+        |_| {}
     };
 
     f
@@ -458,18 +458,24 @@ fn main() {
 
     let mut buf = String::new();
     must(file.read_to_string(&mut buf));
-    logger("Read markdown file");
+    logger(format!(
+        "Read markdown file \"{}\"",
+        cmd.file_path.display()
+    ));
 
     let root = comrak::parse_document(&arena, &buf, &options);
-    logger("Parsed markdown file");
+    logger("Parsed markdown file".to_string());
 
     let mut state = utils::State::default();
     state.domain.clone_from(&cmd.domain_name);
 
-    state.styles.push(include_str!("styles.css").to_string());
+    let stylesheet = must(std::fs::read_to_string(&cmd.style_sheet));
+    logger(format!("Read styles from \"{}\"", cmd.style_sheet));
+
+    state.styles.push(stylesheet);
 
     let html = utils::init(iter_nodes(root, &mut state), state);
-    logger("Generated HTML AST");
+    logger("Generated HTML AST".into());
 
     let out_dir = PathBuf::from(&cmd.out_dir);
     let out_path = out_dir
@@ -480,11 +486,11 @@ fn main() {
 
     if !out_path.exists() {
         must(std::fs::create_dir_all(&cmd.out_dir));
-        logger("Created output directory");
+        logger(format!("Created output directory \"{}\"", cmd.out_dir));
     }
 
     must(std::fs::write(&out_path, html.to_html()));
-    logger(&format!(
+    logger(format!(
         "Written HTML to \"{}\"",
         must(std::env::current_dir()).join(&out_path).display()
     ));
@@ -494,7 +500,7 @@ fn main() {
             &out_path.with_extension("md.ast"),
             format!("{:#?}", root),
         ));
-        logger(&format!(
+        logger(format!(
             "Written Markdown AST to \"{}\"",
             must(std::env::current_dir())
                 .join(&out_path)
@@ -506,7 +512,7 @@ fn main() {
             &out_path.with_extension("html.ast"),
             format!("{:#?}", html),
         ));
-        logger(&format!(
+        logger(format!(
             "Written HTML AST to \"{}\"",
             must(std::env::current_dir())
                 .join(&out_path)

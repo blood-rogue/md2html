@@ -19,4 +19,7 @@ pub struct Command {
 
     #[arg(long, short = 'v')]
     pub verbose: bool,
+
+    #[arg(long, short, default_value_t = String::from("./styles.css"))]
+    pub style_sheet: String,
 }

@@ -1,7 +1,7 @@
 html {
-    font-family: 'Roboto';
-    background-color: #0a0a0a;
-    color: #eee;
+    font-family: 'Open Sans';
+    background-color: #111;
+    color: #ccc;
 }
 
 body {
@@ -75,10 +75,10 @@ pre > div {
     right: -8px;
     float: right;
     border-radius: 5px;
-    border: 3px solid #2c2c2c;
+    border: 3px solid #333;
     padding: 5px;
-    background-color: #3b3b3b;
-    color: #bcbcbc;
+    background-color: #444;
+    color: #ccc;
     font-family: 'Open Sans';
     font-size: 14px;
     font-weight: 600;
@@ -97,14 +97,14 @@ pre > code > div {
 span.code-line-number {
     left: 0;
     position: absolute;
-    color: #898989;
+    color: #888;
 }
 
 blockquote::before {
     content: "“";
     position: relative;
     font-size: 50px;
-    color: #60ffc9cc;
+    color: #fd7656;
 }
 
 blockquote > p {
@@ -126,22 +126,18 @@ section > blockquote:last-child {
 }
 
 mark {
-    background-color: #60ffc9cc;
+    background-color: #fd7656;
     padding: 4px;
     border-radius: 2px;
 }
 
-a:link {
-    color: #60ffc9cc;
-}
-
-a:hover {
-    color: #47fec1;
+a:link, a:visited, a:hover {
+    color: #fd7656;
     text-decoration: none;
 }
 
-a:visited {
-    color: #9866d2;
+a:hover {
+    opacity: 70%;
 }
 
 sup > a[href^="#footnote-definition-"] {
@@ -149,7 +145,7 @@ sup > a[href^="#footnote-definition-"] {
 }
 
 hr {
-    border: 2px solid #60ffc9cc;
+    border: 2px solid #fd7656;
 }
 
 .tag {
