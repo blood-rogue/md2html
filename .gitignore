@@ -2,3 +2,6 @@
 
 # prof-build.ps1 is a powershell script for building executables profile guilded optimization
 prof-build.ps1
+
+src/authors.rs
+authors.toml

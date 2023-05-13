@@ -11,7 +11,10 @@ use fancy_regex::Regex;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 
-use crate::html::{Meta, Tag};
+use crate::{
+    authors::{Author, AUTHORS},
+    html::{Meta, Tag},
+};
 
 static NON_ASCII_CHAR: Lazy<Regex> = Lazy::new(|| must(Regex::new("[^a-z0-9 _]+")));
 
@@ -20,7 +23,6 @@ pub struct FrontMatter {
     title: String,
     tags: Vec<String>,
     author: String,
-    avatar: String,
 }
 
 #[derive(Default)]
@@ -242,7 +244,7 @@ pub fn init(section: Tag, state: State) -> Tag {
         for i in 0..state.footnote_counter[&definition] {
             references.push(Tag::A(
                 Meta::new()
-                    .with_child(Tag::Text("↩&nbsp;".into()))
+                    .with_child(Tag::Text("↩".into()))
                     .with_attr(&format!(
                         "href=\"#footnote-reference-{definition}{}\"",
                         if i > 0 { format!(":{i}") } else { "".into() }
@@ -373,6 +375,12 @@ pub fn init(section: Tag, state: State) -> Tag {
         Tag::Style(minified),
     ])));
 
+    let Author(author, avatar) = must(
+        AUTHORS
+            .get(&front_matter.author)
+            .ok_or_else(|| "Author not found"),
+    );
+
     let body = Tag::Body(
         Meta::new().with_children(Vec::from([
             Tag::Comment("META_CONTAINER_START".to_string()),
@@ -382,17 +390,21 @@ pub fn init(section: Tag, state: State) -> Tag {
                 Meta::new()
                     .with_children(vec![
                         Tag::Img(Meta::new().with_attrs(vec![
-                            format!("src=\"{}\"", front_matter.avatar),
-                            format!("alt=\"{}\"", front_matter.author),
+                            format!("src=\"{}\"", avatar),
+                            format!("alt=\"{}\"", author),
                         ])),
                         Tag::Span(
                             Meta::new().with_child(Tag::A(
                                 Meta::new()
-                                    .with_child(Tag::Text(front_matter.author.clone()))
-                                    .with_attr(&format!(
-                                        "href=\"{}/authors/{}\"",
-                                        state.domain, front_matter.author
-                                    )),
+                                    .with_child(Tag::Text(author.to_string()))
+                                    .with_attrs(vec![
+                                        format!(
+                                            "href=\"https://{}/authors/@{}\"",
+                                            state.domain, front_matter.author
+                                        ),
+                                        "target=\"_blank\"".to_string(),
+                                        "rel=\"noreferrer\"".to_string(),
+                                    ]),
                             )),
                         ),
                         Tag::Span(Meta::new().with_child(Tag::Text(format!(
@@ -456,4 +468,15 @@ pub fn must<T, E: Debug>(res: Result<T, E>) -> T {
             exit(0);
         }
     }
+}
+
+pub fn len_to_size(len: usize) -> Result<String, String> {
+    let (size, unit) = match len {
+        0..=1023 => (len, "bytes"),
+        1024..=1048575 => (len / 1024, "kb"),
+        1048576..=1073741823 => (len / 1048576, "mb"),
+        _ => return Err("Too big to parse".into()),
+    };
+
+    Ok(format!("{} {}", size, unit))
 }

@@ -1,13 +1,15 @@
 [package]
 name = "md2html"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-comrak = { git = "https://github.com/blood-rogue/comrak.git", features = ["shortcodes"] }
+
+# Pull to upstream pending
+comrak = { git = "https://github.com/blood-rogue/comrak.git", default-features = false, features = ["shortcodes"] }
 chrono = "0.4.24"
 syntect = { version = "5.0.0", default-features = false, features = ["default-fancy"]}
 toml = "0.7.3"
@@ -18,3 +20,7 @@ fancy-regex = "0.11.0"
 url = "2.3.1"
 css-minify = "0.3.1"
 colored = "2.0.0"
+phf = { version = "0.11.1", features = ["macros"] }
+
+[build-dependencies]
+toml = "0.7.3"

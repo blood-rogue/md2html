@@ -2,7 +2,7 @@ use crate::html::{Meta, Tag};
 use crate::utils::must;
 
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Color, Style, Theme};
+use syntect::highlighting::{Color, FontStyle, Style, Theme};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
@@ -28,15 +28,31 @@ pub fn highlight_code(code: &str, lang: &str, ps: &SyntaxSet, theme: &Theme) -> 
         for (
             Style {
                 foreground: Color { r, g, b, a },
+                font_style,
                 ..
             },
             text,
         ) in must(h.highlight_line(line, &ps))
         {
+            let mut style = b"style=\"".to_vec();
+            style.extend(format!("color: #{r:02x}{g:02x}{b:02x}{a:02x};").as_bytes());
+
+            if font_style.contains(FontStyle::BOLD) {
+                style.extend(b" font-weight: 700;");
+            }
+            if font_style.contains(FontStyle::ITALIC) {
+                style.extend(b" font-style: italic;");
+            }
+            if font_style.contains(FontStyle::UNDERLINE) {
+                style.extend(b" text-decoration: underline;");
+            }
+
+            style.push(b'"');
+
             cur_line_children.push(Tag::Span(
                 Meta::new()
                     .with_child(Tag::Text(text.to_string()))
-                    .with_attr(&format!("style=\"color: #{r:02x}{g:02x}{b:02x}{a:02x};\"")),
+                    .with_attr(&must(String::from_utf8(style))),
             ))
         }
 

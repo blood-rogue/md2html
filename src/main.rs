@@ -1,10 +1,14 @@
+mod authors;
 mod cmd;
 mod highlighter;
 mod html;
 mod replacer;
 mod utils;
 
-use std::{fs::File, io::Read, path::PathBuf};
+use std::{
+    fs::{create_dir_all, read_to_string, write},
+    path::PathBuf,
+};
 
 use chrono::Utc;
 use clap::Parser;
@@ -21,7 +25,7 @@ use syntect::{
     highlighting::{Theme, ThemeSet},
     parsing::SyntaxSet,
 };
-use utils::must;
+use utils::{len_to_size, must};
 
 static THEME: Lazy<Theme> = Lazy::new(|| {
     let ts = ThemeSet::load_defaults();
@@ -131,7 +135,7 @@ fn iter_nodes<'a>(node: &'a AstNode<'a>, state: &mut utils::State) -> Tag {
 
             children.push(Tag::A(
                 Meta::new()
-                    .with_child(Tag::Text("&nbsp;&sect;".into()))
+                    .with_child(Tag::Text("&sect;".into()))
                     .with_attrs(vec![
                         format!("href=\"#heading__{id}\""),
                         "class=\"section-logo\"".into(),
@@ -454,12 +458,10 @@ fn main() {
 
     let logger = get_logger(cmd.verbose);
 
-    let mut file = must(File::open(&cmd.file_path));
-
-    let mut buf = String::new();
-    must(file.read_to_string(&mut buf));
+    let buf = must(read_to_string(&cmd.file_path));
     logger(format!(
-        "Read markdown file \"{}\"",
+        "Read ({}) markdown file \"{}\"",
+        must(len_to_size(buf.len())),
         cmd.file_path.display()
     ));
 
@@ -469,8 +471,12 @@ fn main() {
     let mut state = utils::State::default();
     state.domain.clone_from(&cmd.domain_name);
 
-    let stylesheet = must(std::fs::read_to_string(&cmd.style_sheet));
-    logger(format!("Read styles from \"{}\"", cmd.style_sheet));
+    let stylesheet = must(read_to_string(&cmd.style_sheet));
+    logger(format!(
+        "Read ({}) styles from \"{}\"",
+        must(len_to_size(stylesheet.len())),
+        cmd.style_sheet
+    ));
 
     state.styles.push(stylesheet);
 
@@ -485,18 +491,12 @@ fn main() {
         .with_extension("html");
 
     if !out_path.exists() {
-        must(std::fs::create_dir_all(&cmd.out_dir));
+        must(create_dir_all(&cmd.out_dir));
         logger(format!("Created output directory \"{}\"", cmd.out_dir));
     }
 
-    must(std::fs::write(&out_path, html.to_html()));
-    logger(format!(
-        "Written HTML to \"{}\"",
-        must(std::env::current_dir()).join(&out_path).display()
-    ));
-
     if cmd.output_ast {
-        must(std::fs::write(
+        must(write(
             &out_path.with_extension("md.ast"),
             format!("{:#?}", root),
         ));
@@ -508,7 +508,7 @@ fn main() {
                 .display()
         ));
 
-        must(std::fs::write(
+        must(write(
             &out_path.with_extension("html.ast"),
             format!("{:#?}", html),
         ));
@@ -520,4 +520,14 @@ fn main() {
                 .display()
         ));
     }
+
+    let html = html.to_html();
+
+    must(write(&out_path, &html));
+
+    logger(format!(
+        "Written ({}) HTML to \"{}\"",
+        must(len_to_size(html.len())),
+        must(std::env::current_dir()).join(&out_path).display()
+    ));
 }

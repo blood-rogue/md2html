@@ -1,7 +1,23 @@
+:root {
+    --white1: #c8c8c8;
+    --white2: #999;
+    --white3: #888;
+    --white4: #777;
+    --black1: #111;
+    --black2: #222;
+    --black3: #333;
+    --black4: #444;
+    --red1: #fd7656;
+    --red2: #ff553b;
+    --purple1: #c688ff;
+    --purple2: #ae63ffcc;
+    --hr: #f59e0b;
+}
+
 html {
     font-family: 'Open Sans';
-    background-color: #111;
-    color: #ccc;
+    background-color: var(--black1);
+    color: var(--white1);
 }
 
 body {
@@ -29,7 +45,7 @@ body > h1 {
 }
 
 section img {
-    max-width: 500px;
+    max-width: 100%;
 }
 
 .meta-container > span {
@@ -46,7 +62,7 @@ section {
 
 section *[id^="heading__"] {
     width: fit-content;
-    color: #c491ff;
+    color: var(--purple1);
 }
 
 section *[id^="heading__"] > a.section-logo {
@@ -56,15 +72,17 @@ section *[id^="heading__"] > a.section-logo {
 section *[id^="heading__"]:hover > a.section-logo {
     visibility: visible;
     text-decoration: none;
+    color: inherit;
 }
 
 .section-logo {
     font-weight: 200;
+    padding: 10px;
 }
 
 pre {
     margin: 10px;
-    background-color: #444;
+    background-color: var(--black4);
     border-radius: 10px;
     white-space: pre-wrap;
 }
@@ -75,10 +93,10 @@ pre > div {
     right: -8px;
     float: right;
     border-radius: 5px;
-    border: 3px solid #333;
+    border: 3px solid var(--black3);
     padding: 5px;
-    background-color: #444;
-    color: #ccc;
+    background-color: var(--black4);
+    color: var(--white1);
     font-family: 'Open Sans';
     font-size: 14px;
     font-weight: 600;
@@ -97,14 +115,14 @@ pre > code > div {
 span.code-line-number {
     left: 0;
     position: absolute;
-    color: #888;
+    color: var(--white3);
 }
 
 blockquote::before {
     content: "“";
     position: relative;
     font-size: 50px;
-    color: #fd7656;
+    color: var(--red1);
 }
 
 blockquote > p {
@@ -112,7 +130,7 @@ blockquote > p {
 }
 
 blockquote {
-    background-color: #292929;
+    background-color: var(--black3);
     padding: 15px;
     border-radius: 15px;
 }
@@ -126,44 +144,63 @@ section > blockquote:last-child {
 }
 
 mark {
-    background-color: #fd7656;
+    background-color: var(--red1);
     padding: 4px;
     border-radius: 2px;
 }
 
-a:link, a:visited, a:hover {
-    color: #fd7656;
-    text-decoration: none;
+a:not(.tag, .section-logo, [id^="footnote-reference-"]):link, a:not(.section-logo, [id^="footnote-reference-"]):visited {
+    color: inherit;
+    text-decoration: underline var(--red1);
+    text-underline-offset: 6.5px;
+    padding: 3px;
 }
 
-a:hover {
-    opacity: 70%;
+a:not(.tag, .section-logo, [id^="footnote-reference-"]):hover {
+    background-color: var(--red2);
+    padding: 3px;
+    border-radius: 2px;
+    text-decoration: none;
+    color: var(--white1);
+}
+
+a:hover > span {
+    color: var(--white1);
+}
+
+a:hover > img {
+    text-decoration: none;
 }
 
 sup > a[href^="#footnote-definition-"] {
-    font-weight: 700;
+    text-decoration: none;
+    color: var(--red1);
 }
 
 hr {
-    border: 2px solid #fd7656;
+    border: 2px solid var(--hr);
 }
 
-.tag {
+a[href^="#footnote-reference-"] {
+    padding: 10px;
+}
+
+a.tag {
     font-family: 'Open Sans';
     border-radius: 999px;
-    padding: 5px 10px;
+    padding: 5px 10px !important;
     margin: 3px;
-    font-size: 13px;
-    background-color: #9866d2;
-    color: #ddd !important;
-    text-decoration: none;
+    font-size: 15px;
+    background-color: var(--purple2);
+    color: var(--white1) !important;
+    text-decoration: none !important;
     font-weight: 300;
 }
 
 details {
     margin-top: 50px;
     padding: 20px;
-    background-color: #222;
+    background-color: var(--black2);
     border-radius: 10px;
 }
 
@@ -171,7 +208,7 @@ details[open] > summary {
     margin: -20px;
     padding: 20px;
     border-radius: 10px;
-    background-color: #454545;
+    background-color: var(--black4);
 }
 
 details > summary > span {
@@ -203,17 +240,17 @@ table {
 
 th, td {
     padding: 8px 15px;
-    border: 1px solid #292929;
+    border: 1px solid var(--black3);
 }
 
 table tr:nth-child(2n) {
-    background-color: #1b1b1b;
+    background-color: var(--black2);
 }
 
 .inline-code {
     font-size: 14px;
     font-family: 'Jetbrains Mono';
-    background-color: #444;
+    background-color: var(--black4);
     padding: 3px 5px 4px 5px;
     border-radius: 3px;
     margin: 0 3px;
@@ -223,32 +260,36 @@ table tr:nth-child(2n) {
     text-decoration: none;
     font-size: 11px;
     vertical-align: super;
-    color: #676767;
+    color: var(--white4);
     margin: 0px 3px;
 }
 
 ::-webkit-scrollbar {
-    background-color: #1a1a1a;
+    background-color: var(--black1);
     border-radius: 0;
     width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background-color: #111;
+    background-color: var(--black1);
     margin: 10px 0px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: #3b3b3b;
+    background-color: var(--black3);
     border-radius: 100px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #454545;
+    background-color: var(--black4);
 }
 
 figure > figcaption {
-    color: #898989;
+    color: var(--white2);
     font-style: italic;
     padding-left: 25px;
+}
+
+p {
+    line-height: 160%;
 }

@@ -1,8 +1,7 @@
 +++
 title = "Sample Markdown 1"
-author = "Blood Rogue"
+author = "blood_rogue"
 tags = ["test", "sample"]
-avatar = "https://avatars.githubusercontent.com/u/64477767"
 +++
 # Headers
 
@@ -265,6 +264,10 @@ Like links, Images also have a footnote style syntax
 With a reference later in the document defining the URL location:
 
 [id]: https://octodex.github.com/images/dojocat.jpg  "The Dojocat"
+
+Ultra wide images fit to width
+
+![Ultra Wide image test](https://images.unsplash.com/photo-1615003162333-d3ff3ce1f0f4 "blue lake near snow covered mountain during daytime")
 ```
 
 Here's our logo (hover to see the title text):
@@ -288,6 +291,10 @@ With a reference later in the document defining the URL location:
 
 [id]: https://octodex.github.com/images/dojocat.jpg  "The Dojocat"
 
+Ultra wide images fit to width
+
+![Ultra Wide image test](https://images.unsplash.com/photo-1615003162333-d3ff3ce1f0f4 "blue lake near snow covered mountain during daytime")
+
 ------
 
 # [Footnotes](https://github.com/markdown-it/markdown-it-footnote)
@@ -296,8 +303,6 @@ With a reference later in the document defining the URL location:
 Footnote 1 link[^first].
 
 Footnote 2 link[^second].
-
-Inline footnote^[Text of inline footnote] definition.
 
 Duplicated footnote reference[^second].
 
@@ -311,8 +316,6 @@ Duplicated footnote reference[^second].
 Footnote 1 link[^first].
 
 Footnote 2 link[^second].
-
-Inline footnote^[Text of inline footnote] definition.
 
 Duplicated footnote reference[^second].
 
@@ -332,7 +335,7 @@ Inline `code` has `back-ticks around` it.
 
 Inline `code` has `back-ticks around` it.
 
-```c#
+```cs
 using System.IO.Compression;
 
 #pragma warning disable 414, 3021
