@@ -51,8 +51,9 @@ impl Meta {
 
 #[derive(Debug, Clone)]
 pub enum Tag {
-    Doctype(Meta),
+    Doctype(Vec<Box<Tag>>),
     Html(Box<Tag>, Box<Tag>),
+
     Head(Meta),
     Title(Meta),
     Link(Meta),
@@ -98,6 +99,7 @@ pub enum Tag {
     Tbody(Meta),
     Figure(Meta),
     Figcaption(Meta),
+    Nav(Meta),
 
     Comment(String),
 
@@ -156,6 +158,7 @@ impl Tag {
             Self::Tbody(_) => "tbody",
             Self::Figure(_) => "figure",
             Self::Figcaption(_) => "figcaption",
+            Self::Nav(_) => "nav",
 
             Self::Doctype(_)
             | Self::Html(_, _)
@@ -171,9 +174,9 @@ impl Tag {
     pub fn write_recursive(&self, writer: &mut impl Write) -> Result<(), Box<dyn Error>> {
         use self::Tag::*;
         match self {
-            Doctype(meta) => {
+            Doctype(children) => {
                 writeln!(writer, "<!DOCTYPE html>")?;
-                for child in &meta.children {
+                for child in children {
                     child.write_recursive(writer)?;
                 }
             }
@@ -191,7 +194,7 @@ impl Tag {
             | Th(meta) | Td(meta) | Span(meta) | Section(meta) | I(meta) | P(meta) | Code(meta)
             | Pre(meta) | B(meta) | S(meta) | Sub(meta) | Sup(meta) | Mark(meta) | A(meta)
             | U(meta) | Details(meta) | Summary(meta) | Tbody(meta) | Figcaption(meta)
-            | Figure(meta) => {
+            | Figure(meta) | Nav(meta) => {
                 write!(writer, "<{}", self.tag_name())?;
                 for attr in &meta.attrs {
                     write!(writer, " {attr}")?;

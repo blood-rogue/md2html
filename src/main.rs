@@ -19,6 +19,7 @@ use comrak::{
     Arena, ComrakExtensionOptions, ComrakOptions, ComrakParseOptions, ComrakRenderOptions,
 };
 
+use css_minify::optimizations::{Level, Minifier};
 use html::{Meta, Tag};
 use once_cell::sync::Lazy;
 use syntect::{
@@ -471,15 +472,6 @@ fn main() {
     let mut state = utils::State::default();
     state.domain.clone_from(&cmd.domain_name);
 
-    let stylesheet = must(read_to_string(&cmd.style_sheet));
-    logger(format!(
-        "Read ({}) styles from \"{}\"",
-        must(len_to_size(stylesheet.len())),
-        cmd.style_sheet
-    ));
-
-    state.styles.push(stylesheet);
-
     let html = utils::init(iter_nodes(root, &mut state), state);
     logger("Generated HTML AST".into());
 
@@ -530,4 +522,31 @@ fn main() {
         must(len_to_size(html.len())),
         must(std::env::current_dir()).join(&out_path).display()
     ));
+
+    let logo_path = out_dir.join("logo.jpg");
+
+    if !logo_path.exists() || cmd.force {
+        must(std::fs::copy(&cmd.logo, &logo_path));
+
+        logger(format!(
+            "Written ({}) logo to \"{}\"",
+            must(len_to_size(must(logo_path.metadata()).len() as usize)),
+            must(std::env::current_dir()).join(&out_path).display()
+        ));
+    }
+
+    let styles_path = out_dir.join("styles.css");
+
+    if !styles_path.exists() || cmd.force {
+        let stylesheet =
+            must(Minifier::default().minify(&must(read_to_string(&cmd.style_sheet)), Level::Three))
+                .replace(":-webkit-", "::-webkit-"); // Optimization Level::Three breaks style rules as it replaces `::-webkit-*` with `:-webkit-*`
+
+        must(std::fs::write(&styles_path, &stylesheet));
+        logger(format!(
+            "Written ({}) stylesheet to \"{}\"",
+            must(len_to_size(stylesheet.len())),
+            cmd.style_sheet
+        ));
+    }
 }

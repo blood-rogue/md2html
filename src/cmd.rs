@@ -22,4 +22,10 @@ pub struct Command {
 
     #[arg(long, short, default_value_t = String::from("./styles.css"))]
     pub style_sheet: String,
+
+    #[arg(long, short, default_value_t = String::from("./logo.jpg"))]
+    pub logo: String,
+
+    #[arg(short = 'F', long)]
+    pub force: bool,
 }

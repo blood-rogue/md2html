@@ -8,10 +8,10 @@
     --black3: #333;
     --black4: #444;
     --red1: #fd7656;
-    --red2: #ff553b;
+    --red2: #cb4733;
     --purple1: #c688ff;
     --purple2: #ae63ffcc;
-    --hr: #f59e0b;
+    --amber1: #f59e0b;
 }
 
 html {
@@ -21,7 +21,7 @@ html {
 }
 
 body {
-    margin: 7%;
+    margin: 0 5%;
     display: grid;
 }
 
@@ -73,6 +73,7 @@ section *[id^="heading__"]:hover > a.section-logo {
     visibility: visible;
     text-decoration: none;
     color: inherit;
+    transition: 0.3s ease;
 }
 
 .section-logo {
@@ -159,26 +160,31 @@ a:not(.tag, .section-logo, [id^="footnote-reference-"]):link, a:not(.section-log
 a:not(.tag, .section-logo, [id^="footnote-reference-"]):hover {
     background-color: var(--red2);
     padding: 3px;
-    border-radius: 2px;
+    border-radius: 3px;
     text-decoration: none;
     color: var(--white1);
+    transition: 0.3s ease;
 }
 
 a:hover > span {
     color: var(--white1);
 }
 
-a:hover > img {
-    text-decoration: none;
+a:has(img) {
+    text-decoration: none !important;
+}
+
+a:has(img):hover {
+    background-color: inherit !important;
 }
 
 sup > a[href^="#footnote-definition-"] {
     text-decoration: none;
-    color: var(--red1);
+    color: var(--amber1);
 }
 
 hr {
-    border: 2px solid var(--hr);
+    border: 2px solid var(--amber1);
 }
 
 a[href^="#footnote-reference-"] {
@@ -292,4 +298,34 @@ figure > figcaption {
 
 p {
     line-height: 160%;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    background-color: var(--black1);
+    color: var(--white1);
+}
+
+nav > img {
+    width: 50px;
+    height: 50px;
+    border-radius: 999px;
+}
+
+nav a {
+    text-decoration: none !important;
+}
+
+nav > ul > div {
+    display: flex;
+    gap: 16px;
+    font-size: 20px;
+    list-style-type: none;
+}
+
+nav > ul > div > li {
+    padding: 5px 15px;
 }

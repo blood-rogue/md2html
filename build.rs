@@ -24,7 +24,7 @@ pub const AUTHORS: phf::Map<&'static str, Author> = phf_map! {
         )
     }
 
-    out.extend(b"};");
+    out.extend(b"};\n");
 
     std::fs::write(
         "src/authors.rs",

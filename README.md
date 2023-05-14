@@ -20,17 +20,24 @@
 - Denotes external links with a icon after the link.
 - Footnote return to reference location.
 - Generates images with captions (`figcaption`) title, if present.
+- Finds `author` details from a `authors.toml` file which is converted to a rust file before compilation using build scripts
 
 ## Usage
 ``` console
 $ md2html --help
-Usage: md2html.exe [OPTIONS] --file-path <FILE_PATH> --domain-name <DOMAIN_NAME>
+Usage: md2html.exe [OPTIONS] --file-path <FILE_PATH>
 
 Options:
   -f, --file-path <FILE_PATH>
   -o, --out-dir <OUT_DIR>          [default: out]
-  -d, --domain-name <DOMAIN_NAME>
+  -d, --domain-name <DOMAIN_NAME>  [default: localhost]
+  -O, --output-ast
+  -v, --verbose
+  -s, --style-sheet <STYLE_SHEET>  [default: ./styles.css]
+  -l, --logo <LOGO>                [default: ./logo.jpg]
+  -F, --force
   -h, --help                       Print help
+  -V, --version                    Print version
 ```
 **Note**: Requires `DOMAIN_NAME` to identify external urls
 

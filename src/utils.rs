@@ -338,7 +338,7 @@ pub fn init(section: Tag, state: State) -> Tag {
         ),
     );
 
-    let families = ["Jetbrains Mono", "Open Sans"]
+    let families = ["Jetbrains Mono", "Open Sans", "Muli"]
         .iter()
         .map(|font| font.replace(" ", "+"))
         .collect::<Vec<_>>()
@@ -347,8 +347,7 @@ pub fn init(section: Tag, state: State) -> Tag {
     let minified = must(css_minify::optimizations::Minifier::default().minify(
         &state.styles.join(""),
         css_minify::optimizations::Level::Three,
-    ))
-    .replace(":-webkit-scrollbar", "::-webkit-scrollbar"); // This breaks custom scroll bar styling as it replaces `::` with `:` which breaks `-webkit-scrollbar`
+    ));
 
     let head = Tag::Head(Meta::new().with_children(Vec::from([
         Tag::Meta(Meta::new().with_attr("charset=\"utf-8\"")),
@@ -371,6 +370,10 @@ pub fn init(section: Tag, state: State) -> Tag {
             "rel=\"stylesheet\"".to_string(),
             "href=\"https://unpkg.com/@fortawesome/fontawesome-free/css/all.min.css\"".to_string(),
         ])),
+        Tag::Link(Meta::new().with_attrs(vec![
+            "rel=\"stylesheet\"".to_string(),
+            "href=\"styles.css\"".to_string(),
+        ])),
         Tag::Title(Meta::new().with_child(Tag::Text(front_matter.title.clone()))),
         Tag::Style(minified),
     ])));
@@ -381,8 +384,51 @@ pub fn init(section: Tag, state: State) -> Tag {
             .ok_or_else(|| "Author not found"),
     );
 
+    let nav_bar = Tag::Nav(
+        Meta::new().with_children(Vec::from([
+            Tag::Img(Meta::new().with_attr("src=\"logo.jpg\"")),
+            Tag::Ul(
+                Meta::new().with_child(Tag::Div(
+                    Meta::new().with_children(Vec::from([
+                        Tag::Li(
+                            Meta::new().with_child(Tag::A(
+                                Meta::new()
+                                    .with_attr("href=\"/\"")
+                                    .with_child(Tag::Text("HOME".into())),
+                            )),
+                        ),
+                        Tag::Li(
+                            Meta::new().with_child(Tag::A(
+                                Meta::new()
+                                    .with_attr("href=\"/blog\"")
+                                    .with_child(Tag::Text("BLOG".into())),
+                            )),
+                        ),
+                        Tag::Li(
+                            Meta::new().with_child(Tag::A(
+                                Meta::new()
+                                    .with_attr("href=\"/about\"")
+                                    .with_child(Tag::Text("ABOUT".into())),
+                            )),
+                        ),
+                        Tag::Li(
+                            Meta::new().with_child(Tag::A(
+                                Meta::new()
+                                    .with_attr("href=\"/contact\"")
+                                    .with_child(Tag::Text("CONTACT".into())),
+                            )),
+                        ),
+                    ])),
+                )),
+            ),
+        ])),
+    );
+
     let body = Tag::Body(
         Meta::new().with_children(Vec::from([
+            Tag::Comment("NAVBAR_START".to_string()),
+            nav_bar,
+            Tag::Comment("NAVBAR_END".to_string()),
             Tag::Comment("META_CONTAINER_START".to_string()),
             Tag::H1(Meta::new().with_child(Tag::Text(front_matter.title.clone()))),
             Tag::Div(Meta::new().with_children(tags)),
@@ -436,13 +482,13 @@ pub fn init(section: Tag, state: State) -> Tag {
         ])),
     );
 
-    Tag::Doctype(Meta::new().with_children(Vec::from([
-        Tag::Comment(format!(
+    Tag::Doctype(Vec::from([
+        Box::new(Tag::Comment(format!(
             "Generated using `md2html` by `Blood Rogue (github.com/blood-rogue)` on {}.",
             state.date.format("%d/%m/%Y %H:%M:%S")
-        )),
-        Tag::Html(Box::new(head), Box::new(body)),
-    ])))
+        ))),
+        Box::new(Tag::Html(Box::new(head), Box::new(body))),
+    ]))
 }
 
 pub fn char_to_taskitem(ch: char) -> Tag {
