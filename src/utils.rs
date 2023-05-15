@@ -11,10 +11,7 @@ use fancy_regex::Regex;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 
-use crate::{
-    authors::{Author, AUTHORS},
-    html::{Meta, Tag},
-};
+use crate::html::{Meta, Tag};
 
 static NON_ASCII_CHAR: Lazy<Regex> = Lazy::new(|| must(Regex::new("[^a-z0-9 _]+")));
 
@@ -36,6 +33,7 @@ pub struct State {
     pub word_count: usize,
     pub headings: Vec<(u8, String, String)>,
     pub domain: String,
+    pub authors: HashMap<String, (String, String)>,
 }
 
 fn remove_diacritics(string: &str) -> String {
@@ -269,7 +267,7 @@ pub fn init(section: Tag, state: State) -> Tag {
             Meta::new()
                 .with_child(Tag::Text(format!("#{tag}")))
                 .with_attrs(vec![
-                    format!("href=\"{}/tags/{tag}\"", state.domain),
+                    format!("href=\"https://{}/tags/{tag}\"", state.domain),
                     "class=\"tag\"".to_string(),
                 ]),
         ))
@@ -316,33 +314,40 @@ pub fn init(section: Tag, state: State) -> Tag {
     };
 
     let toc = Tag::Div(
-        Meta::new().with_children(
-            state
-                .headings
-                .iter()
-                .map(|(depth, id, title)| {
-                    Tag::P(
-                        Meta::new()
-                            .with_child(Tag::A(
-                                Meta::new()
-                                    .with_child(Tag::Text(format!(
-                                        "{}. {title}",
-                                        format_heading(*depth)
-                                    )))
-                                    .with_attr(&format!("href=\"#heading__{id}\"")),
-                            ))
-                            .with_attr(&format!("style=\"padding-left: {}px\"", depth.mul(20))),
-                    )
-                })
-                .collect(),
-        ),
+        Meta::new()
+            .with_children(
+                state
+                    .headings
+                    .iter()
+                    .map(|(depth, id, title)| {
+                        Tag::P(
+                            Meta::new()
+                                .with_child(Tag::A(
+                                    Meta::new()
+                                        .with_child(Tag::Text(format!(
+                                            "{}. {title}",
+                                            format_heading(*depth)
+                                        )))
+                                        .with_attr(&format!("href=\"#heading__{id}\"")),
+                                ))
+                                .with_attr(&format!("style=\"padding-left: {}px\"", depth.mul(20))),
+                        )
+                    })
+                    .collect(),
+            )
+            .with_attr("class=\"content\""),
     );
 
-    let families = ["Jetbrains Mono", "Open Sans", "Muli"]
-        .iter()
-        .map(|font| font.replace(" ", "+"))
-        .collect::<Vec<_>>()
-        .join("&family=");
+    let families = [
+        "Jetbrains Mono:wght@100..800",
+        "Open Sans:wght@300..800",
+        "Mulish:wght@200..700",
+        "Roboto Mono:wght@100",
+    ]
+    .iter()
+    .map(|font| font.replace(" ", "+"))
+    .collect::<Vec<_>>()
+    .join("&family=");
 
     let minified = must(css_minify::optimizations::Minifier::default().minify(
         &state.styles.join(""),
@@ -358,6 +363,10 @@ pub fn init(section: Tag, state: State) -> Tag {
         Tag::Meta(Meta::new().with_attrs(vec![
             "property=\"og:title\"".to_string(),
             format!("content=\"{}\"", front_matter.title),
+        ])),
+        Tag::Link(Meta::new().with_attrs(vec![
+            "rel=\"icon\"".to_string(),
+            "href=\"logo.png\"".to_string(),
         ])),
         Tag::Link(Meta::new().with_attrs(vec![
             "rel=\"stylesheet\"".to_string(),
@@ -378,15 +387,28 @@ pub fn init(section: Tag, state: State) -> Tag {
         Tag::Style(minified),
     ])));
 
-    let Author(author, avatar) = must(
-        AUTHORS
+    let (author, avatar) = must(
+        state
+            .authors
             .get(&front_matter.author)
             .ok_or_else(|| "Author not found"),
     );
 
     let nav_bar = Tag::Nav(
         Meta::new().with_children(Vec::from([
-            Tag::Img(Meta::new().with_attr("src=\"logo.jpg\"")),
+            Tag::Div(Meta::new().with_children(vec![
+                    Tag::Img(Meta::new().with_attr("src=\"logo.png\"")),
+                    Tag::Span(
+                        Meta::new()
+                            .with_child(Tag::Text("ΠΑΝΔΑ".to_string()))
+                            .with_attr("id=\"text1\""),
+                    ),
+                    Tag::Span(
+                        Meta::new()
+                            .with_child(Tag::Text("P4ND4".to_string()))
+                            .with_attr("id=\"text2\""),
+                    ),
+                ])),
             Tag::Ul(
                 Meta::new().with_child(Tag::Div(
                     Meta::new().with_children(Vec::from([
@@ -430,7 +452,11 @@ pub fn init(section: Tag, state: State) -> Tag {
             nav_bar,
             Tag::Comment("NAVBAR_END".to_string()),
             Tag::Comment("META_CONTAINER_START".to_string()),
-            Tag::H1(Meta::new().with_child(Tag::Text(front_matter.title.clone()))),
+            Tag::H1(
+                Meta::new()
+                    .with_child(Tag::Text(front_matter.title.clone()))
+                    .with_attr("id=\"title\""),
+            ),
             Tag::Div(Meta::new().with_children(tags)),
             Tag::Div(
                 Meta::new()
@@ -454,7 +480,7 @@ pub fn init(section: Tag, state: State) -> Tag {
                             )),
                         ),
                         Tag::Span(Meta::new().with_child(Tag::Text(format!(
-                            "{} min read &bull; {}",
+                            "{} min read &nbsp;&bull;&nbsp; {}",
                             state.word_count / 120,
                             state.date.format("%e %B, %Y")
                         )))),
@@ -479,6 +505,17 @@ pub fn init(section: Tag, state: State) -> Tag {
                 Tag::Ol(Meta::new().with_children(footnotes)),
             ])),
             Tag::Comment("FOOTNOTES_END".to_string()),
+            Tag::A(
+                Meta::new()
+                    .with_child(Tag::I(
+                        Meta::new().with_attr("class=\"fa-solid fa-chevron-up\""),
+                    ))
+                    .with_attrs(vec![
+                        "href=\"#title\"".to_string(),
+                        "id=\"scroll\"".to_string(),
+                    ]),
+            ),
+            Tag::Raw(format!("<script>{SCRIPT}</script>")),
         ])),
     );
 
@@ -526,3 +563,19 @@ pub fn len_to_size(len: usize) -> Result<String, String> {
 
     Ok(format!("{} {}", size, unit))
 }
+
+const SCRIPT: &'static str = "class X{constructor(a){this.a=a;this.b=a.querySelector\
+('summary');this.c=a.querySelector('.content');this.d=null;this.e=false;this.f=false;\
+this.b.addEventListener('click',(e)=>this.A(e));}A(e){e.preventDefault();this.a.style.\
+overflow='hidden';if(this.e||!this.a.open){this.C();}else if(this.f||this.a.open){this.\
+B();}}B(){this.e=true;const x=`${this.a.offsetHeight}px`;const y=`${this.b.offsetHeight}px`;\
+if(this.d){this.d.cancel();}this.d=this.a.animate({height:[x,y]},{duration:400,easing:'ease'})\
+;this.d.onfinish=()=>this.E(false);this.d.oncancel=()=>this.e=false;}C(){this.a.style.height=`$\
+{this.a.offsetHeight}px`;this.a.open=true;window.requestAnimationFrame(()=>this.D());}D(){this.f\
+=true;const x=`${this.a.offsetHeight}px`;const y=`${this.b.offsetHeight+this.c.offsetHeight}px`;\
+if(this.d){this.d.cancel();}this.d=this.a.animate({height:[x,y]},{duration:400,easing:'ease'});\
+this.d.onfinish=()=>this.E(true);this.d.oncancel=()=>this.f=false;}E(open){this.a.open=open;\
+this.d=null;this.e=false;this.f=false;this.a.style.height=this.a.style.overflow='';}}new X\
+(document.querySelectorAll('details')[0]);(()=>{const a=document.querySelector('#scroll');const B=()\
+=>{window.scrollY>window.innerHeight?a.classList.add('show'):a.classList.remove('show');};window.\
+addEventListener('scroll',B);})();";

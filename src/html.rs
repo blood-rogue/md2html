@@ -175,7 +175,7 @@ impl Tag {
         use self::Tag::*;
         match self {
             Doctype(children) => {
-                writeln!(writer, "<!DOCTYPE html>")?;
+                write!(writer, "<!DOCTYPE html>")?;
                 for child in children {
                     child.write_recursive(writer)?;
                 }

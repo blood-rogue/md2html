@@ -1,14 +1,10 @@
-mod authors;
 mod cmd;
 mod highlighter;
 mod html;
 mod replacer;
 mod utils;
 
-use std::{
-    fs::{create_dir_all, read_to_string, write},
-    path::PathBuf,
-};
+use std::fs::{create_dir_all, read_to_string, write};
 
 use chrono::Utc;
 use clap::Parser;
@@ -472,10 +468,20 @@ fn main() {
     let mut state = utils::State::default();
     state.domain.clone_from(&cmd.domain_name);
 
+    let authors_db = must(std::fs::read_to_string(&cmd.authors_db));
+    logger(format!(
+        "Read ({} bytes) authors db file \"{}\"",
+        must(len_to_size(authors_db.len())),
+        &cmd.authors_db
+    ));
+
+    state.authors = must(toml::from_str(&authors_db));
+    logger("Parsed authors db file".to_string());
+
     let html = utils::init(iter_nodes(root, &mut state), state);
     logger("Generated HTML AST".into());
 
-    let out_dir = PathBuf::from(&cmd.out_dir);
+    let out_dir = must(std::env::current_dir()).join(&cmd.out_dir);
     let out_path = out_dir
         .join(must(
             cmd.file_path.file_stem().ok_or_else(|| "No filename found"),
@@ -523,7 +529,7 @@ fn main() {
         must(std::env::current_dir()).join(&out_path).display()
     ));
 
-    let logo_path = out_dir.join("logo.jpg");
+    let logo_path = out_dir.join("logo.png");
 
     if !logo_path.exists() || cmd.force {
         must(std::fs::copy(&cmd.logo, &logo_path));
@@ -531,7 +537,7 @@ fn main() {
         logger(format!(
             "Written ({}) logo to \"{}\"",
             must(len_to_size(must(logo_path.metadata()).len() as usize)),
-            must(std::env::current_dir()).join(&out_path).display()
+            logo_path.display()
         ));
     }
 
@@ -539,14 +545,14 @@ fn main() {
 
     if !styles_path.exists() || cmd.force {
         let stylesheet =
-            must(Minifier::default().minify(&must(read_to_string(&cmd.style_sheet)), Level::Three))
+            must(Minifier::default().minify(&must(read_to_string(&cmd.style_sheet)), Level::One))
                 .replace(":-webkit-", "::-webkit-"); // Optimization Level::Three breaks style rules as it replaces `::-webkit-*` with `:-webkit-*`
 
         must(std::fs::write(&styles_path, &stylesheet));
         logger(format!(
             "Written ({}) stylesheet to \"{}\"",
             must(len_to_size(stylesheet.len())),
-            cmd.style_sheet
+            styles_path.display()
         ));
     }
 }

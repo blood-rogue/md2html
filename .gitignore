@@ -1,8 +1,6 @@
 /target
 
-# prof-build.ps1 is a powershell script for building executables profile guilded optimization
-prof-build.ps1
+logo.png
 
-src/authors.rs
-authors.toml
-logo.jpg
+# This is a test output directory
+/out

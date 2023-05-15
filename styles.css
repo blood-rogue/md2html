@@ -7,6 +7,7 @@
     --black2: #222;
     --black3: #333;
     --black4: #444;
+    --black23: #282828;
     --red1: #fd7656;
     --red2: #cb4733;
     --purple1: #c688ff;
@@ -18,10 +19,11 @@ html {
     font-family: 'Open Sans';
     background-color: var(--black1);
     color: var(--white1);
+    scroll-behavior: smooth;
 }
 
 body {
-    margin: 0 5%;
+    margin: 0 5% 5% 5%;
     display: grid;
 }
 
@@ -57,7 +59,8 @@ section {
     margin-top: 40px;
     text-align: justify;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 400;
+    letter-spacing: 0.4px;
 }
 
 section *[id^="heading__"] {
@@ -66,14 +69,14 @@ section *[id^="heading__"] {
 }
 
 section *[id^="heading__"] > a.section-logo {
-    visibility: hidden;
+    opacity: 0;
 }
 
 section *[id^="heading__"]:hover > a.section-logo {
-    visibility: visible;
+    opacity: 100%;
     text-decoration: none;
     color: inherit;
-    transition: 0.3s ease;
+    transition: opacity 0.3s ease;
 }
 
 .section-logo {
@@ -107,6 +110,7 @@ pre > code {
     font-family: 'Jetbrains Mono';
     background-color: inherit !important;
     font-size: 15px;
+    letter-spacing: 0;
 }
 
 pre > code > div {
@@ -150,16 +154,16 @@ mark {
     border-radius: 2px;
 }
 
-a:not(.tag, .section-logo, [id^="footnote-reference-"]):link, a:not(.section-logo, [id^="footnote-reference-"]):visited {
+a:not(.tag, .section-logo, [id^="footnote-reference-"], #scroll):link, a:not(.section-logo, [id^="footnote-reference-"], #scroll):visited {
     color: inherit;
     text-decoration: underline var(--red1);
-    text-underline-offset: 6.5px;
-    padding: 3px;
+    text-underline-offset: 8px;
+    padding: 5px;
 }
 
-a:not(.tag, .section-logo, [id^="footnote-reference-"]):hover {
+a:not(.tag, .section-logo, [id^="footnote-reference-"], #scroll):hover {
     background-color: var(--red2);
-    padding: 3px;
+    padding: 5px;
     border-radius: 3px;
     text-decoration: none;
     color: var(--white1);
@@ -188,7 +192,7 @@ hr {
 }
 
 a[href^="#footnote-reference-"] {
-    padding: 10px;
+    padding: 10px !important;
 }
 
 a.tag {
@@ -205,14 +209,38 @@ a.tag {
 
 details {
     margin-top: 50px;
-    padding: 20px;
-    background-color: var(--black2);
     border-radius: 10px;
+    background-color: var(--black2);
+    cursor: pointer;
+}
+
+summary::before {
+    content: '';
+    border-width: 7px;
+    border-style: solid;
+    border-color: transparent transparent transparent #fff;
+    position: absolute;
+    top: 25px;
+    left: 20px;
+    transform: rotate(0);
+    transform-origin: .2rem 50%;
+    transition: .3s transform ease;
+}
+
+details > summary {
+    padding: 20px 20px 20px 30px;
+    border-radius: 10px;
+    background-color: var(--black2);
+    transition: color 0.3s ease;
+    list-style: none;
+    position: relative;
+}
+
+details[open] > summary::before {
+    transform: rotate(90deg);
 }
 
 details[open] > summary {
-    margin: -20px;
-    padding: 20px;
     border-radius: 10px;
     background-color: var(--black4);
 }
@@ -290,6 +318,12 @@ table tr:nth-child(2n) {
     background-color: var(--black4);
 }
 
+figure {
+    display: inline-flex;
+    align-items: center;
+    flex-direction: column;
+}
+
 figure > figcaption {
     color: var(--white2);
     font-style: italic;
@@ -304,28 +338,122 @@ nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px;
+    padding: 15px;
     background-color: var(--black1);
     color: var(--white1);
+    width: 96%;
 }
 
-nav > img {
+nav > div > img {
     width: 50px;
     height: 50px;
-    border-radius: 999px;
+}
+
+nav > div > span {
+    font-family: 'Roboto Mono';
+    font-weight: 100;
+    font-size: 35px;
+    margin-left: 15px;
+    letter-spacing: 4px;
+}
+
+nav > div > span#text1 {
+    opacity: 100%;
+    transition: opacity 0.5s ease;
+    position: absolute;
+    left: 65px;
+}
+
+nav > div > span#text2 {
+    opacity: 0%;
+    transition: opacity 0.5s ease;
+    position: absolute;
+    left: 65px;
+}
+
+nav > div:hover > span#text1 {
+    opacity: 0%;
+    transition: opacity 0.5s ease;
+    position: absolute;
+    left: 65px;
+}
+
+nav > div:hover > span#text2 {
+    opacity: 100%;
+    transition: opacity 0.5s ease;
+    position: absolute;
+    left: 65px;
+}
+
+nav > div {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
 }
 
 nav a {
     text-decoration: none !important;
+    font-family: Mulish;
+    font-weight: 200;
+    position: relative;
+}
+
+nav a:hover {
+    background-color: var(--black1) !important;
+}
+
+nav a::before {
+    content: "";
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 0.5px;
+    bottom: -9px;
+    left: 0;
+    background-color: var(--red1);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+nav a:hover::before {
+    transform: scaleX(1);
+}
+
+nav > ul {
+    display: flex;
 }
 
 nav > ul > div {
     display: flex;
-    gap: 16px;
+    gap: 15px;
     font-size: 20px;
     list-style-type: none;
 }
 
 nav > ul > div > li {
     padding: 5px 15px;
+}
+
+#scroll {
+    opacity: 0;
+    width: 60px;
+    height: 60px;
+    color: var(--white1);
+    background-color: var(--black23);
+    position: fixed;
+    bottom: 5%;
+    right: 5%;
+    border-radius: 999px;
+    border: 0;
+    font: bold 30px monospace;
+    transition: opacity 0.5s, transform 0.5s;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    text-decoration: none;
+}
+
+#scroll.show {
+    opacity: 1;
+    transition: opacity 1s, transform 1s;
 }

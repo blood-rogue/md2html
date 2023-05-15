@@ -19,8 +19,9 @@
 - Calculates total read time assuming average speed of `120 wpm`.
 - Denotes external links with a icon after the link.
 - Footnote return to reference location.
-- Generates images with captions (`figcaption`) title, if present.
-- Finds `author` details from a `authors.toml` file which is converted to a rust file before compilation using build scripts
+- Generates images with captions (`figcaption`) if title is present.
+- Finds `author` details from a `authors.toml` file.
+- Navbar with transitions
 
 ## Usage
 ``` console
@@ -28,14 +29,16 @@ $ md2html --help
 Usage: md2html.exe [OPTIONS] --file-path <FILE_PATH>
 
 Options:
-  -f, --file-path <FILE_PATH>
-  -o, --out-dir <OUT_DIR>          [default: out]
-  -d, --domain-name <DOMAIN_NAME>  [default: localhost]
-  -O, --output-ast
-  -v, --verbose
-  -s, --style-sheet <STYLE_SHEET>  [default: ./styles.css]
-  -l, --logo <LOGO>                [default: ./logo.jpg]
-  -F, --force
+  -f, --file-path <FILE_PATH>      The path to the markdown file
+  -o, --out-dir <OUT_DIR>          The output directory in which to place files (generated html, logo and styles)
+                                   [default: out]
+  -d, --domain-name <DOMAIN_NAME>  The domain name of the blog to identify external websites [default: localhost]
+  -O, --output-ast                 Output the HTML and Markdown struct debug info
+  -v, --verbose                    Log events
+  -s, --style-sheet <STYLE_SHEET>  Path to the stylesheet [default: ./styles.css]
+  -l, --logo <LOGO>                Path to the logo file [default: ./logo.png]
+  -a, --authors-db <AUTHORS_DB>    [default: ./authors.toml]
+  -F, --force                      Force overwrite file to the output directory
   -h, --help                       Print help
   -V, --version                    Print version
 ```
