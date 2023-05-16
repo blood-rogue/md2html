@@ -17,9 +17,9 @@ static NON_ASCII_CHAR: Lazy<Regex> = Lazy::new(|| must(Regex::new("[^a-z0-9 _]+"
 
 #[derive(Deserialize, Default, Clone)]
 pub struct FrontMatter {
-    title: String,
+    pub title: String,
     tags: Vec<String>,
-    author: String,
+    author: Option<String>,
 }
 
 #[derive(Default)]
@@ -224,12 +224,16 @@ pub fn heading_to_slug(elements: &[Tag]) -> (String, String) {
 
     let title = text.clone();
 
-    let text = NON_ASCII_CHAR
-        .replace_all(&remove_diacritics(&text).to_lowercase(), "-")
-        .trim_matches('-')
-        .to_string();
+    let text = text_to_slug(&text);
 
     (text, title)
+}
+
+pub fn text_to_slug(text: &str) -> String {
+    NON_ASCII_CHAR
+        .replace_all(&remove_diacritics(&text).to_lowercase(), "-")
+        .trim_matches('-')
+        .to_string()
 }
 
 pub fn init(section: Tag, state: State) -> Tag {
@@ -366,7 +370,7 @@ pub fn init(section: Tag, state: State) -> Tag {
         ])),
         Tag::Link(Meta::new().with_attrs(vec![
             "rel=\"icon\"".to_string(),
-            "href=\"logo.png\"".to_string(),
+            "href=\"/logo.png\"".to_string(),
         ])),
         Tag::Link(Meta::new().with_attrs(vec![
             "rel=\"stylesheet\"".to_string(),
@@ -381,7 +385,7 @@ pub fn init(section: Tag, state: State) -> Tag {
         ])),
         Tag::Link(Meta::new().with_attrs(vec![
             "rel=\"stylesheet\"".to_string(),
-            "href=\"styles.css\"".to_string(),
+            "href=\"/styles.css\"".to_string(),
         ])),
         Tag::Title(Meta::new().with_child(Tag::Text(front_matter.title.clone()))),
         Tag::Style(minified),
@@ -390,14 +394,19 @@ pub fn init(section: Tag, state: State) -> Tag {
     let (author, avatar) = must(
         state
             .authors
-            .get(&front_matter.author)
+            .get(
+                &front_matter
+                    .author
+                    .clone()
+                    .unwrap_or_else(|| String::from("blood_rogue")),
+            )
             .ok_or_else(|| "Author not found"),
     );
 
     let nav_bar = Tag::Nav(
         Meta::new().with_children(Vec::from([
             Tag::Div(Meta::new().with_children(vec![
-                    Tag::Img(Meta::new().with_attr("src=\"logo.png\"")),
+                    Tag::Img(Meta::new().with_attr("src=\"/logo.png\"")),
                     Tag::Span(
                         Meta::new()
                             .with_child(Tag::Text("ΠΑΝΔΑ".to_string()))
@@ -472,7 +481,15 @@ pub fn init(section: Tag, state: State) -> Tag {
                                     .with_attrs(vec![
                                         format!(
                                             "href=\"https://{}/authors/@{}\"",
-                                            state.domain, front_matter.author
+                                            state.domain,
+                                            front_matter.author.map_or_else(
+                                                || String::from("me"),
+                                                |value| if value == "blood_rogue" {
+                                                    String::from("me")
+                                                } else {
+                                                    value
+                                                }
+                                            )
                                         ),
                                         "target=\"_blank\"".to_string(),
                                         "rel=\"noreferrer\"".to_string(),

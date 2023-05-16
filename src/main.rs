@@ -4,7 +4,10 @@ mod html;
 mod replacer;
 mod utils;
 
-use std::fs::{create_dir_all, read_to_string, write};
+use std::{
+    fs::{create_dir_all, read_to_string, write},
+    path::PathBuf,
+};
 
 use chrono::Utc;
 use clap::Parser;
@@ -15,7 +18,6 @@ use comrak::{
     Arena, ComrakExtensionOptions, ComrakOptions, ComrakParseOptions, ComrakRenderOptions,
 };
 
-use css_minify::optimizations::{Level, Minifier};
 use html::{Meta, Tag};
 use once_cell::sync::Lazy;
 use syntect::{
@@ -459,7 +461,7 @@ fn main() {
     logger(format!(
         "Read ({}) markdown file \"{}\"",
         must(len_to_size(buf.len())),
-        cmd.file_path.display()
+        cmd.file_path
     ));
 
     let root = comrak::parse_document(&arena, &buf, &options);
@@ -478,15 +480,24 @@ fn main() {
     state.authors = must(toml::from_str(&authors_db));
     logger("Parsed authors db file".to_string());
 
-    let html = utils::init(iter_nodes(root, &mut state), state);
-    logger("Generated HTML AST".into());
+    let section = iter_nodes(root, &mut state);
 
     let out_dir = must(std::env::current_dir()).join(&cmd.out_dir);
-    let out_path = out_dir
-        .join(must(
-            cmd.file_path.file_stem().ok_or_else(|| "No filename found"),
-        ))
-        .with_extension("html");
+    let file_path = utils::text_to_slug(
+        &must(
+            state
+                .front_matter
+                .clone()
+                .ok_or_else(|| "Front matter not found"),
+        )
+        .title,
+    );
+
+    let html = utils::init(section, state);
+    logger("Generated HTML AST".into());
+
+    let file_path = PathBuf::from(file_path).with_extension("html");
+    let out_path = out_dir.join(file_path);
 
     if !out_path.exists() {
         must(create_dir_all(&cmd.out_dir));
@@ -528,31 +539,4 @@ fn main() {
         must(len_to_size(html.len())),
         must(std::env::current_dir()).join(&out_path).display()
     ));
-
-    let logo_path = out_dir.join("logo.png");
-
-    if !logo_path.exists() || cmd.force {
-        must(std::fs::copy(&cmd.logo, &logo_path));
-
-        logger(format!(
-            "Written ({}) logo to \"{}\"",
-            must(len_to_size(must(logo_path.metadata()).len() as usize)),
-            logo_path.display()
-        ));
-    }
-
-    let styles_path = out_dir.join("styles.css");
-
-    if !styles_path.exists() || cmd.force {
-        let stylesheet =
-            must(Minifier::default().minify(&must(read_to_string(&cmd.style_sheet)), Level::One))
-                .replace(":-webkit-", "::-webkit-"); // Optimization Level::Three breaks style rules as it replaces `::-webkit-*` with `:-webkit-*`
-
-        must(std::fs::write(&styles_path, &stylesheet));
-        logger(format!(
-            "Written ({}) stylesheet to \"{}\"",
-            must(len_to_size(stylesheet.len())),
-            styles_path.display()
-        ));
-    }
 }

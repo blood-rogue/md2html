@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use clap::Parser;
 
 #[derive(Parser)]
@@ -7,7 +5,7 @@ use clap::Parser;
 pub struct Command {
     /// The path to the markdown file
     #[arg(long, short)]
-    pub file_path: PathBuf,
+    pub file_path: String,
 
     /// The output directory in which to place files (generated html, logo and styles)
     #[arg(long, short, default_value_t = String::from("out"))]
@@ -24,14 +22,6 @@ pub struct Command {
     /// Log events
     #[arg(long, short = 'v')]
     pub verbose: bool,
-
-    /// Path to the stylesheet
-    #[arg(long, short, default_value_t = String::from("./styles.css"))]
-    pub style_sheet: String,
-
-    /// Path to the logo file
-    #[arg(long, short, default_value_t = String::from("./logo.png"))]
-    pub logo: String,
 
     #[arg(long, short, default_value_t = String::from("./authors.toml"))]
     pub authors_db: String,
